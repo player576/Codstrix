@@ -27,7 +27,6 @@
 
     h1 {
       text-align: center;
-      color: #2c3e50;
     }
 
     .form {
@@ -41,42 +40,25 @@
       padding: 10px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 14px;
     }
 
     button {
       border: none;
       cursor: pointer;
-      background: #27ae60;
       color: white;
-    }
-
-    button:hover {
-      background: #219150;
-    }
-
-    .delete-btn {
-      background: #e74c3c;
-    }
-
-    .delete-btn:hover {
-      background: #c0392b;
+      background: #27ae60;
     }
 
     .scan-btn {
       background: #2980b9;
     }
 
-    .scan-btn:hover {
-      background: #21618c;
-    }
-
     .print-btn {
       background: #8e44ad;
     }
 
-    .print-btn:hover {
-      background: #6c3483;
+    .delete-btn {
+      background: #e74c3c;
     }
 
     table {
@@ -96,213 +78,192 @@
       color: white;
     }
 
-    .summary {
-      margin-top: 20px;
-      text-align: right;
-      font-size: 18px;
-      font-weight: bold;
-    }
-
     #reader {
       width: 300px;
       margin: 20px auto;
     }
 
-    svg {
-      width: 180px;
-      height: 60px;
+    canvas {
+      max-width: 200px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>📦 Складской учет материалов</h1>
+<div class="container">
+  <h1>📦 Складской учет материалов</h1>
 
-    <div class="form">
-      <input type="text" id="material" placeholder="Материал">
-      <input type="number" id="quantity" placeholder="Количество">
-      <input type="text" id="unit" placeholder="Единица">
-      <input type="number" id="price" placeholder="Цена за единицу">
-      <button onclick="addMaterial()">Добавить</button>
-      <button class="scan-btn" onclick="startScanner()">📷 Сканировать</button>
-    </div>
-
-    <div id="reader"></div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Материал</th>
-          <th>Количество</th>
-          <th>Единица</th>
-          <th>Цена</th>
-          <th>Сумма</th>
-          <th>Штрих-код</th>
-          <th>Печать</th>
-          <th>Удалить</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-
-    <div class="summary" id="total">Общая стоимость: 0 ₴</div>
+  <div class="form">
+    <input type="text" id="material" placeholder="Материал">
+    <input type="number" id="quantity" placeholder="Количество">
+    <input type="text" id="unit" placeholder="Единица">
+    <input type="number" id="price" placeholder="Цена за единицу">
+    <button onclick="addMaterial()">Добавить</button>
+    <button class="scan-btn" onclick="startScanner()">📷 Сканировать</button>
   </div>
 
-  <script>
-    let materials = JSON.parse(localStorage.getItem('materials')) || [];
+  <div id="reader"></div>
 
-    function saveMaterials() {
-      localStorage.setItem('materials', JSON.stringify(materials));
-    }
+  <table>
+    <thead>
+      <tr>
+        <th>Материал</th>
+        <th>Количество</th>
+        <th>Единица</th>
+        <th>Цена</th>
+        <th>Сумма</th>
+        <th>Штрих-код</th>
+        <th>Печать</th>
+        <th>Удалить</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
 
-    function generateBarcode() {
-      return 'MAT-' + Math.floor(Math.random() * 1000000000);
-    }
+<script>
+  let materials = JSON.parse(localStorage.getItem('materials')) || [];
 
-    function renderTable() {
-      const tableBody = document.getElementById('tableBody');
-      tableBody.innerHTML = '';
+  function saveMaterials() {
+    localStorage.setItem('materials', JSON.stringify(materials));
+  }
 
-      let total = 0;
+  function generateBarcode() {
+    return Math.floor(100000000000 + Math.random() * 900000000000).toString();
+  }
 
-      materials.forEach((item, index) => {
-        const row = document.createElement('tr');
-        const sum = item.quantity * item.price;
-        total += sum;
+  function renderTable() {
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
 
-        row.innerHTML = `
-          <td>${item.material}</td>
-          <td>${item.quantity}</td>
-          <td>${item.unit}</td>
-          <td>${item.price} ₴</td>
-          <td>${sum} ₴</td>
-          <td>
-            <svg id="barcode-${index}"></svg>
-            <div>${item.barcode}</div>
-          </td>
-          <td>
-            <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
-          </td>
-          <td>
-            <button class="delete-btn" onclick="deleteMaterial(${index})">X</button>
-          </td>
-        `;
+    materials.forEach((item, index) => {
+      const row = document.createElement('tr');
+      const sum = item.quantity * item.price;
 
-        tableBody.appendChild(row);
+      row.innerHTML = `
+        <td>${item.material}</td>
+        <td>${item.quantity}</td>
+        <td>${item.unit}</td>
+        <td>${item.price} ₴</td>
+        <td>${sum} ₴</td>
+        <td>
+          <canvas id="barcode-${index}"></canvas>
+          <div>${item.barcode}</div>
+        </td>
+        <td>
+          <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
+        </td>
+        <td>
+          <button class="delete-btn" onclick="deleteMaterial(${index})">X</button>
+        </td>
+      `;
 
+      tableBody.appendChild(row);
+
+      try {
         JsBarcode(`#barcode-${index}`, item.barcode, {
           format: 'CODE128',
-          displayValue: true
+          displayValue: false,
+          width: 2,
+          height: 50
         });
-      });
-
-      document.getElementById('total').innerText = `Общая стоимость: ${total} ₴`;
-    }
-
-    function addMaterial() {
-      const material = document.getElementById('material').value.trim();
-      const quantity = parseFloat(document.getElementById('quantity').value);
-      const unit = document.getElementById('unit').value.trim();
-      const price = parseFloat(document.getElementById('price').value);
-
-      if (!material || !quantity || !unit || isNaN(price)) {
-        alert('Заполните все поля!');
-        return;
+      } catch (e) {
+        console.error('Ошибка штрих-кода:', e);
       }
+    });
+  }
 
-      const barcode = generateBarcode();
+  function addMaterial() {
+    const material = document.getElementById('material').value.trim();
+    const quantity = parseFloat(document.getElementById('quantity').value);
+    const unit = document.getElementById('unit').value.trim();
+    const price = parseFloat(document.getElementById('price').value);
 
-      materials.push({
-        material,
-        quantity,
-        unit,
-        price,
-        barcode
-      });
-
-      saveMaterials();
-      renderTable();
-
-      document.getElementById('material').value = '';
-      document.getElementById('quantity').value = '';
-      document.getElementById('unit').value = '';
-      document.getElementById('price').value = '';
+    if (!material || isNaN(quantity) || !unit || isNaN(price)) {
+      alert('Заполните все поля');
+      return;
     }
 
-    function deleteMaterial(index) {
-      materials.splice(index, 1);
-      saveMaterials();
-      renderTable();
-    }
+    materials.push({
+      material,
+      quantity,
+      unit,
+      price,
+      barcode: generateBarcode()
+    });
 
-    function printBarcode(index) {
-      const item = materials[index];
-
-      const printWindow = window.open('', '', 'width=500,height=400');
-
-      printWindow.document.write(`
-        <html>
-        <head>
-          <title>Печать штрих-кода</title>
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              text-align: center;
-              padding-top: 50px;
-            }
-          </style>
-        </head>
-        <body>
-          <h2>${item.material}</h2>
-          <svg id="print-barcode"></svg>
-          <p>${item.barcode}</p>
-
-          <script>
-            JsBarcode('#print-barcode', '${item.barcode}', {
-              format: 'CODE128',
-              displayValue: true
-            });
-
-            window.onload = function() {
-              window.print();
-            }
-          <\/script>
-        </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-    }
-
-    function startScanner() {
-      const scanner = new Html5Qrcode('reader');
-
-      scanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: 250
-        },
-        (decodedText) => {
-          const item = materials.find(m => m.barcode === decodedText);
-
-          if (item) {
-            alert(`Найден материал: ${item.material}\nКоличество: ${item.quantity} ${item.unit}`);
-          } else {
-            alert('Материал не найден');
-          }
-
-          scanner.stop();
-        },
-        (errorMessage) => {
-        }
-      ).catch(err => {
-        alert('Ошибка камеры: ' + err);
-      });
-    }
-
+    saveMaterials();
     renderTable();
-  </script>
+
+    document.getElementById('material').value = '';
+    document.getElementById('quantity').value = '';
+    document.getElementById('unit').value = '';
+    document.getElementById('price').value = '';
+  }
+
+  function deleteMaterial(index) {
+    materials.splice(index, 1);
+    saveMaterials();
+    renderTable();
+  }
+
+  function printBarcode(index) {
+    const item = materials[index];
+
+    const win = window.open('', '', 'width=500,height=400');
+
+    win.document.write(`
+      <html>
+      <head>
+        <title>Печать</title>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+      </head>
+      <body style="font-family:Arial;text-align:center;padding-top:40px;">
+        <h2>${item.material}</h2>
+        <canvas id="printBarcode"></canvas>
+        <p>${item.barcode}</p>
+
+        <script>
+          JsBarcode('#printBarcode', '${item.barcode}', {
+            format:'CODE128',
+            width:2,
+            height:80,
+            displayValue:true
+          });
+
+          setTimeout(() => {
+            window.print();
+          }, 500);
+        <\/script>
+      </body>
+      </html>
+    `);
+
+    win.document.close();
+  }
+
+  function startScanner() {
+    const scanner = new Html5Qrcode('reader');
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        const item = materials.find(m => m.barcode === decodedText);
+
+        if (item) {
+          alert(`Найден материал: ${item.material}`);
+        } else {
+          alert('Материал не найден');
+        }
+
+        scanner.stop();
+      }
+    ).catch(err => {
+      alert('Ошибка камеры: ' + err);
+    });
+  }
+
+  renderTable();
+</script>
 </body>
 </html>
