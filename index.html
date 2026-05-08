@@ -71,6 +71,14 @@
       background: #21618c;
     }
 
+    .print-btn {
+      background: #8e44ad;
+    }
+
+    .print-btn:hover {
+      background: #6c3483;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -130,6 +138,7 @@
           <th>Цена</th>
           <th>Сумма</th>
           <th>Штрих-код</th>
+          <th>Печать</th>
           <th>Удалить</th>
         </tr>
       </thead>
@@ -172,6 +181,9 @@
             <div>${item.barcode}</div>
           </td>
           <td>
+            <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
+          </td>
+          <td>
             <button class="delete-btn" onclick="deleteMaterial(${index})">X</button>
           </td>
         `;
@@ -180,7 +192,7 @@
 
         JsBarcode(`#barcode-${index}`, item.barcode, {
           format: 'CODE128',
-          displayValue: false
+          displayValue: true
         });
       });
 
@@ -221,6 +233,46 @@
       materials.splice(index, 1);
       saveMaterials();
       renderTable();
+    }
+
+    function printBarcode(index) {
+      const item = materials[index];
+
+      const printWindow = window.open('', '', 'width=500,height=400');
+
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Печать штрих-кода</title>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              text-align: center;
+              padding-top: 50px;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>${item.material}</h2>
+          <svg id="print-barcode"></svg>
+          <p>${item.barcode}</p>
+
+          <script>
+            JsBarcode('#print-barcode', '${item.barcode}', {
+              format: 'CODE128',
+              displayValue: true
+            });
+
+            window.onload = function() {
+              window.print();
+            }
+          <\/script>
+        </body>
+        </html>
+      `);
+
+      printWindow.document.close();
     }
 
     function startScanner() {
