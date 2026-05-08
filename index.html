@@ -5,181 +5,212 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Складской учет PRO (QR-Sync)</title>
 
+  <!-- QR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Сканер -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    :root {
-      --bg: #f0f2f5;
-      --card: #ffffff;
-      --primary: #3498db;
-      --success: #2ecc71;
-      --danger: #e74c3c;
+
+    :root{
+      --bg:#f0f2f5;
+      --card:#ffffff;
+      --primary:#3498db;
+      --success:#2ecc71;
+      --danger:#e74c3c;
     }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background: var(--bg);
-      margin: 0;
-      padding: 10px;
+    body{
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      background:var(--bg);
+      margin:0;
+      padding:10px;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      background: var(--card);
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      overflow-x: auto;
+    .container{
+      max-width:1200px;
+      margin:auto;
+      background:var(--card);
+      padding:20px;
+      border-radius:15px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.1);
+      overflow-x:auto;
     }
 
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-      margin-bottom: 20px;
+    h1{
+      text-align:center;
+      color:#2c3e50;
+      margin-bottom:20px;
     }
 
-    .form {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 10px;
-      margin-bottom: 20px;
+    .form{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:10px;
+      margin-bottom:20px;
     }
 
-    input {
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      outline: none;
-      font-size: 14px;
+    input{
+      padding:12px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      outline:none;
+      font-size:14px;
     }
 
-    button {
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
+    button{
+      padding:10px;
+      border:none;
+      border-radius:8px;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.3s;
     }
 
-    button:hover {
-      opacity: 0.9;
+    button:hover{
+      opacity:0.9;
     }
 
-    .btn-add {
-      background: var(--success);
+    .btn-add{
+      background:var(--success);
     }
 
-    .btn-scan {
-      background: var(--primary);
+    .btn-scan{
+      background:var(--primary);
     }
 
-    .btn-share {
-      background: #1da1f2;
-      font-size: 12px;
-      margin-bottom: 5px;
+    .btn-share{
+      background:#1da1f2;
+      font-size:12px;
     }
 
-    .btn-del {
-      background: var(--danger);
-      font-size: 12px;
+    .btn-del{
+      background:var(--danger);
+      font-size:12px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      min-width: 900px;
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:15px;
+      min-width:950px;
     }
 
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #eee;
-      text-align: center;
-      vertical-align: middle;
-      word-break: break-word;
+    th,td{
+      padding:12px;
+      border-bottom:1px solid #eee;
+      text-align:center;
+      vertical-align:middle;
     }
 
-    th {
-      background: #34495e;
-      color: white;
-      position: sticky;
-      top: 0;
+    th{
+      background:#34495e;
+      color:white;
     }
 
-    .qr-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-width: 110px;
-      min-height: 110px;
+    .qr-container{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-width:110px;
+      min-height:110px;
     }
 
-    .qr-container img {
-      width: 100px;
-      height: 100px;
+    .qr-container img{
+      width:100px;
+      height:100px;
     }
 
-    #reader {
-      width: 100%;
-      max-width: 400px;
-      margin: 15px auto;
-      border-radius: 12px;
-      overflow: hidden;
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
     }
 
-    .actions {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      min-width: 120px;
+    #reader{
+      width:100%;
+      max-width:400px;
+      margin:15px auto;
+      border-radius:12px;
+      overflow:hidden;
     }
 
-    .total-box {
-      margin-top: 20px;
-      text-align: right;
-      font-size: 20px;
-      font-weight: bold;
-      color: #2c3e50;
+    .total-box{
+      margin-top:20px;
+      text-align:right;
+      font-size:22px;
+      font-weight:bold;
+      color:#2c3e50;
     }
 
-    @media(max-width: 768px){
-      table {
-        font-size: 13px;
+    @media(max-width:768px){
+
+      table{
+        font-size:13px;
       }
 
-      th, td {
-        padding: 8px;
+      th,td{
+        padding:8px;
       }
 
-      .qr-container img {
-        width: 80px;
-        height: 80px;
+      .qr-container img{
+        width:80px;
+        height:80px;
       }
     }
+
   </style>
 </head>
+
 <body>
 
 <div class="container">
+
   <h1>📦 Складской учет (QR-Версия)</h1>
 
   <div class="form">
-    <input type="text" id="name" placeholder="Название">
-    <input type="number" id="qty" placeholder="Кол-во">
-    <input type="text" id="unit" placeholder="Ед. (шт/кг)">
-    <input type="number" id="price" placeholder="Цена ₴">
 
-    <button class="btn-add" onclick="addItem()">➕ Добавить</button>
-    <button class="btn-scan" onclick="startScanner()">📷 Сканировать QR</button>
+    <input
+      type="text"
+      id="name"
+      placeholder="Название">
+
+    <input
+      type="number"
+      id="qty"
+      placeholder="Кол-во">
+
+    <input
+      type="text"
+      id="unit"
+      placeholder="Ед. (шт/кг)">
+
+    <input
+      type="number"
+      id="price"
+      placeholder="Цена ₴">
+
+    <button
+      class="btn-add"
+      onclick="addItem()">
+      ➕ Добавить
+    </button>
+
+    <button
+      class="btn-scan"
+      onclick="startScanner()">
+      📷 Сканировать QR
+    </button>
+
   </div>
 
   <div id="reader"></div>
 
   <table>
+
     <thead>
       <tr>
         <th>Товар</th>
@@ -192,266 +223,346 @@
     </thead>
 
     <tbody id="tableBody"></tbody>
+
   </table>
 
   <div class="total-box">
-    💰 Общая сумма: <span id="grandTotal">0</span> ₴
+    💰 Общая сумма:
+    <span id="grandTotal">0</span> ₴
   </div>
+
 </div>
 
 <script>
-  let inventory = JSON.parse(localStorage.getItem('my_inventory')) || [];
 
-  function save() {
-    localStorage.setItem('my_inventory', JSON.stringify(inventory));
-  }
+let inventory =
+  JSON.parse(
+    localStorage.getItem('my_inventory')
+  ) || [];
 
-  function render() {
+function save(){
 
-    const tbody = document.getElementById('tableBody');
-    const grandTotal = document.getElementById('grandTotal');
+  localStorage.setItem(
+    'my_inventory',
+    JSON.stringify(inventory)
+  );
+}
 
-    tbody.innerHTML = '';
+function render(){
 
-    let totalSum = 0;
+  const tbody =
+    document.getElementById('tableBody');
 
-    inventory.forEach((item, index) => {
+  const grandTotal =
+    document.getElementById('grandTotal');
 
-      const row = document.createElement('tr');
+  tbody.innerHTML = '';
 
-      const qrData =
-        `SKLAD:${item.name}|${item.unit}|${item.price}`;
+  let totalSum = 0;
 
-      const itemSum = Number(item.qty) * Number(item.price);
+  inventory.forEach((item,index)=>{
 
-      totalSum += itemSum;
+    const row =
+      document.createElement('tr');
 
-      row.innerHTML = `
-        <td>
-          <strong>${item.name}</strong>
-        </td>
+    const qrData =
+      `SKLAD:${item.name}|${item.unit}|${item.price}`;
 
-        <td>
-          ${item.qty} ${item.unit}
-        </td>
+    const itemSum =
+      Number(item.qty) * Number(item.price);
 
-        <td>
-          ${item.price} ₴
-        </td>
+    totalSum += itemSum;
 
-        <td>
-          <strong>${itemSum.toFixed(2)} ₴</strong>
-        </td>
+    row.innerHTML = `
 
-        <td class="qr-container">
-          <div id="qr-${index}"></div>
-        </td>
+      <td>
+        <strong>${item.name}</strong>
+      </td>
 
-        <td class="actions">
+      <td>
+        ${item.qty} ${item.unit}
+      </td>
 
-          <button class="btn-share"
+      <td>
+        ${item.price} ₴
+      </td>
+
+      <td>
+        <strong>${itemSum.toFixed(2)} ₴</strong>
+      </td>
+
+      <td class="qr-container">
+        <div id="qr-${index}"></div>
+      </td>
+
+      <td>
+        <div class="actions">
+
+          <button
+            class="btn-share"
             onclick="shareQR(${index})">
+
             📲 Переслать
+
           </button>
 
-          <button class="btn-del"
+          <button
+            class="btn-del"
             onclick="deleteItem(${index})">
-            Удалить
+
+            🗑 Удалить
+
           </button>
 
-        </td>
-      `;
+        </div>
+      </td>
+    `;
 
-      tbody.appendChild(row);
+    tbody.appendChild(row);
 
-      const qrElement = document.getElementById(`qr-${index}`);
+    const qrElement =
+      document.getElementById(`qr-${index}`);
 
-      qrElement.innerHTML = '';
+    qrElement.innerHTML = '';
 
-      new QRCode(qrElement, {
-        text: qrData,
-        width: 100,
-        height: 100
-      });
+    new QRCode(qrElement,{
+      text:qrData,
+      width:100,
+      height:100
     });
 
-    grandTotal.textContent = totalSum.toFixed(2);
-  }
+  });
 
-  function addItem() {
+  grandTotal.textContent =
+    totalSum.toFixed(2);
+}
 
-    const name = document.getElementById('name').value.trim();
+function addItem(){
 
-    const qty = parseFloat(
+  const name =
+    document.getElementById('name')
+    .value.trim();
+
+  const qty =
+    parseFloat(
       document.getElementById('qty').value
     );
 
-    const unit =
-      document.getElementById('unit').value.trim() || 'шт';
+  const unit =
+    document.getElementById('unit')
+    .value.trim() || 'шт';
 
-    const price = parseFloat(
+  const price =
+    parseFloat(
       document.getElementById('price').value
     ) || 0;
 
-    if (!name || isNaN(qty)) {
-      alert("Введите название и количество!");
-      return;
-    }
+  if(!name || isNaN(qty)){
 
-    inventory.push({
-      name,
-      qty,
-      unit,
-      price
-    });
+    alert(
+      "Введите название и количество!"
+    );
 
-    save();
-    render();
-
-    ['name', 'qty', 'unit', 'price']
-      .forEach(id => {
-        document.getElementById(id).value = '';
-      });
+    return;
   }
 
-  function startScanner() {
+  inventory.push({
+    name,
+    qty,
+    unit,
+    price
+  });
 
-    const scanner = new Html5Qrcode('reader');
+  save();
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: 250 },
+  render();
 
-      (text) => {
+  ['name','qty','unit','price']
+  .forEach(id=>{
 
-        if (text.startsWith("SKLAD:")) {
+    document.getElementById(id).value='';
+  });
+}
 
-          const data =
-            text.replace("SKLAD:", "").split('|');
+function startScanner(){
 
-          const name = data[0];
-          const unit = data[1];
-          const price = Number(data[2]);
+  const scanner =
+    new Html5Qrcode('reader');
 
-          const existing =
-            inventory.find(i => i.name === name);
+  scanner.start(
 
-          if (existing) {
+    { facingMode:'environment' },
 
-            let add = prompt(
+    {
+      fps:10,
+      qrbox:250
+    },
+
+    (text)=>{
+
+      if(text.startsWith("SKLAD:")){
+
+        const data =
+          text.replace(
+            "SKLAD:",
+            ""
+          ).split('|');
+
+        const name = data[0];
+        const unit = data[1];
+        const price =
+          Number(data[2]);
+
+        const existing =
+          inventory.find(
+            i=>i.name===name
+          );
+
+        if(existing){
+
+          let add =
+            prompt(
               `Товар "${name}" найден. Сколько добавить?`,
               "1"
             );
 
-            if (add) {
-              existing.qty += parseFloat(add);
-            }
+          if(add){
 
-          } else {
+            existing.qty +=
+              parseFloat(add);
+          }
 
-            let qty = parseFloat(
+        }else{
+
+          let qty =
+            parseFloat(
               prompt(
                 `Новый товар: ${name}. Количество:`,
                 "1"
               )
             ) || 1;
 
-            inventory.push({
-              name,
-              qty,
-              unit,
-              price
-            });
-          }
-
-          save();
-          render();
-
-          scanner.stop();
-
-          alert("✅ Готово!");
-
-        } else {
-
-          alert("❌ Это не QR склада!");
-          scanner.stop();
+          inventory.push({
+            name,
+            qty,
+            unit,
+            price
+          });
         }
+
+        save();
+
+        render();
+
+        scanner.stop();
+
+        alert("✅ Готово!");
+
+      }else{
+
+        alert(
+          "❌ Это не QR склада!"
+        );
+
+        scanner.stop();
       }
-
-    ).catch(() => {
-      alert("Ошибка камеры");
-    });
-  }
-
-  async function shareQR(index) {
-
-    const container =
-      document.getElementById(`qr-${index}`);
-
-    const img =
-      container.querySelector('img');
-
-    if (!img) {
-      alert("QR еще не создан");
-      return;
     }
 
-    try {
+  ).catch(()=>{
 
-      const response = await fetch(img.src);
+    alert("Ошибка камеры");
+  });
+}
 
-      const blob = await response.blob();
+async function shareQR(index){
 
-      const file = new File(
+  const container =
+    document.getElementById(
+      `qr-${index}`
+    );
+
+  const img =
+    container.querySelector('img');
+
+  if(!img){
+
+    alert(
+      "QR еще не создан"
+    );
+
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(img.src);
+
+    const blob =
+      await response.blob();
+
+    const file =
+      new File(
         [blob],
         `qr-${inventory[index].name}.png`,
-        { type: 'image/png' }
+        {
+          type:'image/png'
+        }
       );
 
-      // 📱 Поделиться через мессенджеры
-      if (
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
-      ) {
+    if(
+      navigator.canShare &&
+      navigator.canShare({
+        files:[file]
+      })
+    ){
 
-        await navigator.share({
-          title: inventory[index].name,
-          text: `QR товара: ${inventory[index].name}`,
-          files: [file]
-        });
+      await navigator.share({
 
-      } else {
+        title:
+          inventory[index].name,
 
-        // fallback
-        const link = document.createElement('a');
+        text:
+          `QR товара: ${inventory[index].name}`,
 
-        link.href = img.src;
+        files:[file]
+      });
 
-        link.download =
-          `qr-${inventory[index].name}.png`;
+    }else{
 
-        link.click();
-      }
+      const link =
+        document.createElement('a');
 
-    } catch (e) {
+      link.href = img.src;
 
-      alert("Ошибка отправки QR");
+      link.download =
+        `qr-${inventory[index].name}.png`;
+
+      link.click();
     }
+
+  }catch(e){
+
+    alert(
+      "Ошибка отправки QR"
+    );
   }
+}
 
-  function deleteItem(index) {
+function deleteItem(index){
 
-    if (confirm('Удалить товар?')) {
+  if(confirm('Удалить товар?')){
 
-      inventory.splice(index, 1);
+    inventory.splice(index,1);
 
-      save();
+    save();
 
-      render();
-    }
+    render();
   }
+}
 
-  render();
+render();
+
 </script>
 
 </body>
