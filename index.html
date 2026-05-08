@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Складской учет материалов</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,7 +17,7 @@
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -45,27 +49,10 @@
       cursor: pointer;
       background: #27ae60;
       color: white;
-      transition: 0.2s;
     }
 
     button:hover {
       background: #219150;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
-      text-align: center;
-    }
-
-    th {
-      background: #34495e;
-      color: white;
     }
 
     .delete-btn {
@@ -76,11 +63,46 @@
       background: #c0392b;
     }
 
+    .scan-btn {
+      background: #2980b9;
+    }
+
+    .scan-btn:hover {
+      background: #21618c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background: #34495e;
+      color: white;
+    }
+
     .summary {
       margin-top: 20px;
       text-align: right;
       font-size: 18px;
       font-weight: bold;
+    }
+
+    #reader {
+      width: 300px;
+      margin: 20px auto;
+    }
+
+    svg {
+      width: 180px;
+      height: 60px;
     }
   </style>
 </head>
@@ -94,7 +116,10 @@
       <input type="text" id="unit" placeholder="Единица">
       <input type="number" id="price" placeholder="Цена за единицу">
       <button onclick="addMaterial()">Добавить</button>
+      <button class="scan-btn" onclick="startScanner()">📷 Сканировать</button>
     </div>
+
+    <div id="reader"></div>
 
     <table>
       <thead>
@@ -104,6 +129,7 @@
           <th>Единица</th>
           <th>Цена</th>
           <th>Сумма</th>
+          <th>Штрих-код</th>
           <th>Удалить</th>
         </tr>
       </thead>
@@ -118,6 +144,10 @@
 
     function saveMaterials() {
       localStorage.setItem('materials', JSON.stringify(materials));
+    }
+
+    function generateBarcode() {
+      return 'MAT-' + Math.floor(Math.random() * 1000000000);
     }
 
     function renderTable() {
@@ -137,10 +167,21 @@
           <td>${item.unit}</td>
           <td>${item.price} ₴</td>
           <td>${sum} ₴</td>
-          <td><button class="delete-btn" onclick="deleteMaterial(${index})">X</button></td>
+          <td>
+            <svg id="barcode-${index}"></svg>
+            <div>${item.barcode}</div>
+          </td>
+          <td>
+            <button class="delete-btn" onclick="deleteMaterial(${index})">X</button>
+          </td>
         `;
 
         tableBody.appendChild(row);
+
+        JsBarcode(`#barcode-${index}`, item.barcode, {
+          format: 'CODE128',
+          displayValue: false
+        });
       });
 
       document.getElementById('total').innerText = `Общая стоимость: ${total} ₴`;
@@ -157,7 +198,16 @@
         return;
       }
 
-      materials.push({ material, quantity, unit, price });
+      const barcode = generateBarcode();
+
+      materials.push({
+        material,
+        quantity,
+        unit,
+        price,
+        barcode
+      });
+
       saveMaterials();
       renderTable();
 
@@ -171,6 +221,33 @@
       materials.splice(index, 1);
       saveMaterials();
       renderTable();
+    }
+
+    function startScanner() {
+      const scanner = new Html5Qrcode('reader');
+
+      scanner.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        (decodedText) => {
+          const item = materials.find(m => m.barcode === decodedText);
+
+          if (item) {
+            alert(`Найден материал: ${item.material}\nКоличество: ${item.quantity} ${item.unit}`);
+          } else {
+            alert('Материал не найден');
+          }
+
+          scanner.stop();
+        },
+        (errorMessage) => {
+        }
+      ).catch(err => {
+        alert('Ошибка камеры: ' + err);
+      });
     }
 
     renderTable();
