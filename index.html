@@ -9,37 +9,42 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-    .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; }
-    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
-    input, button { padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-    button { border: none; cursor: pointer; color: white; background: #27ae60; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 15px; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+    h1 { text-align: center; color: #2c3e50; font-size: 22px; }
+    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px; }
+    input, button { padding: 12px; border-radius: 10px; border: 1px solid #dfe6e9; outline: none; font-size: 14px; }
+    button { border: none; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+    .add-btn { background: #27ae60; }
     .scan-btn { background: #2980b9; }
+    .share-btn { background: #0088cc; } /* Цвет Telegram/Мессенджеров */
     .print-btn { background: #8e44ad; }
-    .share-btn { background: #1da1f2; } /* Цвет для кнопки поделиться */
     .delete-btn { background: #e74c3c; }
-    .edit-btn { background: #3498db; }
-    .save-btn { background: #f39c12; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-    th { background: #34495e; color: white; }
-    #reader { width: 300px; margin: 20px auto; }
-    canvas { max-width: 150px; height: auto; }
-    .actions { display: flex; flex-direction: column; gap: 5px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; overflow: hidden; border-radius: 8px; }
+    th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
+    th { background: #34495e; color: white; font-weight: normal; font-size: 13px; }
+    
+    .barcode-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    canvas { max-width: 140px; height: auto; display: block; }
+    
+    .actions { display: flex; flex-direction: column; gap: 8px; }
+    
+    #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 10px; overflow: hidden; }
   </style>
 </head>
 <body>
+
 <div class="container">
-  <h1>📦 Складской учет материалов</h1>
+  <h1>📦 Мой Склад</h1>
 
   <div class="form">
-    <input type="text" id="material" placeholder="Материал">
-    <input type="number" id="quantity" placeholder="Количество">
-    <input type="text" id="unit" placeholder="Единица">
-    <input type="number" id="price" placeholder="Цена за единицу">
-    <button onclick="addMaterial()">Добавить</button>
-    <button class="scan-btn" onclick="startScanner()">📷 Сканировать</button>
+    <input type="text" id="material" placeholder="Название">
+    <input type="number" id="quantity" placeholder="Кол-во">
+    <input type="text" id="unit" placeholder="Ед. изм.">
+    <input type="number" id="price" placeholder="Цена ₴">
+    <button class="add-btn" onclick="addMaterial()">➕ Добавить</button>
+    <button class="scan-btn" onclick="startScanner()">📷 Камера</button>
   </div>
 
   <div id="reader"></div>
@@ -47,10 +52,9 @@
   <table>
     <thead>
       <tr>
-        <th>Материал</th>
-        <th>Количество</th>
-        <th>Единица</th>
-        <th>Цена / Сумма</th>
+        <th>Товар</th>
+        <th>Остаток</th>
+        <th>Цена</th>
         <th>Штрих-код</th>
         <th>Действия</th>
       </tr>
@@ -76,27 +80,25 @@
 
     materials.forEach((item, index) => {
       const row = document.createElement('tr');
-      const sum = item.quantity * item.price;
-
       row.innerHTML = `
         <td><strong>${item.material}</strong></td>
-        <td>${item.quantity}</td>
-        <td>${item.unit}</td>
-        <td>${item.price} ₴<br><small>Итого: ${sum} ₴</small></td>
+        <td>${item.quantity} ${item.unit}</td>
+        <td>${item.price} ₴</td>
         <td>
-          <canvas id="barcode-${index}"></canvas>
-          <div><small>${item.barcode}</small></div>
+          <div class="barcode-container">
+            <canvas id="barcode-${index}"></canvas>
+            <small style="color:#7f8c8d">${item.barcode}</small>
+          </div>
         </td>
         <td class="actions">
-          <button class="share-btn" onclick="shareBarcode(${index})">📲 Переслать</button>
+          <button class="share-btn" onclick="shareAsImage(${index})">📲 В мессенджер</button>
           <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
-          <button class="edit-btn" onclick="editRow(${index})">✏️</button>
-          <button class="delete-btn" onclick="deleteMaterial(${index})">X</button>
+          <button class="delete-btn" onclick="deleteMaterial(${index})">🗑</button>
         </td>
       `;
-
       tableBody.appendChild(row);
 
+      // Генерация графики в Canvas
       JsBarcode(`#barcode-${index}`, item.barcode, {
         format: 'CODE128',
         displayValue: false,
@@ -107,113 +109,92 @@
     });
   }
 
-  // ФУНКЦИЯ ДЛЯ ПЕРЕСЫЛКИ
-  async function shareBarcode(index) {
+  // ФУНКЦИЯ ОТПРАВКИ PNG ФАЙЛА
+  async function shareAsImage(index) {
     const item = materials[index];
     const canvas = document.getElementById(`barcode-${index}`);
     
-    // Превращаем canvas в Blob (данные файла)
+    // 1. Конвертируем Canvas в Blob (бинарные данные PNG)
     canvas.toBlob(async (blob) => {
-      const file = new File([blob], `barcode-${item.material}.png`, { type: 'image/png' });
+      if (!blob) {
+        alert("Ошибка создания изображения");
+        return;
+      }
 
-      // Проверяем, поддерживает ли браузер отправку файлов (Web Share API)
+      // 2. Создаем файл из Blob
+      const file = new File([blob], `barcode-${item.barcode}.png`, { type: 'image/png' });
+
+      // 3. Проверяем возможность отправки файла
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
             title: `Штрих-код: ${item.material}`,
-            text: `Материал: ${item.material}, Код: ${item.barcode}`
+            text: `Товар: ${item.material}\nКод: ${item.barcode}`
           });
         } catch (err) {
-          console.error('Ошибка отправки:', err);
+          console.error("Пользователь отменил отправку или произошла ошибка:", err);
         }
       } else {
-        // Если пересылка не поддерживается, просто скачиваем файл
+        // Запасной вариант: скачивание
         const link = document.createElement('a');
-        link.download = `barcode-${item.barcode}.png`;
-        link.href = canvas.toDataURL();
+        link.href = canvas.toDataURL("image/png");
+        link.download = `barcode-${item.material}.png`;
         link.click();
-        alert('Ваш браузер не поддерживает прямую пересылку. Файл сохранен в загрузки.');
+        alert("Ваш браузер не поддерживает прямую отправку файлов. PNG скачан в память устройства.");
       }
-    });
+    }, 'image/png');
   }
 
   function addMaterial() {
-    const material = document.getElementById('material').value.trim();
-    const quantity = parseFloat(document.getElementById('quantity').value);
-    const unit = document.getElementById('unit').value.trim();
-    const price = parseFloat(document.getElementById('price').value);
+    const material = document.getElementById('material').value;
+    const quantity = document.getElementById('quantity').value;
+    const unit = document.getElementById('unit').value;
+    const price = document.getElementById('price').value;
 
-    if (!material || isNaN(quantity) || !unit || isNaN(price)) {
-      alert('Заполните все поля');
-      return;
-    }
+    if (!material || !quantity || !price) return alert("Заполните поля!");
 
     materials.push({ material, quantity, unit, price, barcode: generateBarcode() });
     saveMaterials();
     renderTable();
-    
-    // Очистка полей
-    ['material', 'quantity', 'unit', 'price'].forEach(id => document.getElementById(id).value = '');
+
+    document.querySelectorAll('.form input').forEach(i => i.value = '');
   }
 
   function deleteMaterial(index) {
-    if(confirm('Удалить этот материал?')) {
+    if (confirm("Удалить позицию?")) {
       materials.splice(index, 1);
       saveMaterials();
       renderTable();
     }
   }
 
-  function editRow(index) {
-    const item = materials[index];
-    const row = document.getElementById('tableBody').rows[index];
-    row.innerHTML = `
-      <td><input value="${item.material}" id="edit-m-${index}" style="width:80px"></td>
-      <td><input type="number" value="${item.quantity}" id="edit-q-${index}" style="width:50px"></td>
-      <td><input value="${item.unit}" id="edit-u-${index}" style="width:50px"></td>
-      <td><input type="number" value="${item.price}" id="edit-p-${index}" style="width:60px"></td>
-      <td>${item.barcode}</td>
-      <td><button class="save-btn" onclick="saveEdit(${index})">💾</button></td>
-    `;
-  }
-
-  function saveEdit(index) {
-    materials[index].material = document.getElementById(`edit-m-${index}`).value;
-    materials[index].quantity = parseFloat(document.getElementById(`edit-q-${index}`).value);
-    materials[index].unit = document.getElementById(`edit-u-${index}`).value;
-    materials[index].price = parseFloat(document.getElementById(`edit-p-${index}`).value);
-    saveMaterials();
-    renderTable();
-  }
-
   function printBarcode(index) {
     const item = materials[index];
-    const win = window.open('', '', 'width=500,height=400');
-    win.document.write(`
-      <html><body style="text-align:center;padding:50px;">
-        <h2>${item.material}</h2>
-        <canvas id="p"></canvas>
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
-        <script>
-          JsBarcode('#p', '${item.barcode}', {format:'CODE128', width:2, height:100, displayValue:true});
-          setTimeout(() => { window.print(); window.close(); }, 500);
-        <\/script>
-      </body></html>
-    `);
+    const win = window.open('', '', 'width=400,height=400');
+    win.document.write(`<html><body style="text-align:center;padding:20px;">
+      <h2>${item.material}</h2>
+      <canvas id="p"></canvas>
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+      <script>
+        JsBarcode('#p', '${item.barcode}', {format:'CODE128', width:2, height:100, displayValue:true});
+        setTimeout(() => { window.print(); window.close(); }, 500);
+      <\/script>
+    </body></html>`);
     win.document.close();
   }
 
   function startScanner() {
     const scanner = new Html5Qrcode('reader');
     scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => {
-      const item = materials.find(m => m.barcode === text);
-      alert(item ? `Найден: ${item.material} (${item.quantity} ${item.unit})` : 'Код не найден в базе');
+      const found = materials.find(m => m.barcode === text);
+      alert(found ? `Найден: ${found.material}` : "Код не найден");
       scanner.stop();
-    }).catch(e => alert('Камера недоступна'));
+    }).catch(e => alert("Ошибка камеры"));
   }
 
   renderTable();
 </script>
+
 </body>
 </html>
