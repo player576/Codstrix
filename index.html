@@ -5,35 +5,161 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Складской учет PRO (QR-Sync)</title>
 
-  <!-- Библиотека для генерации QR-кодов -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- Библиотека для сканера -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    :root { --bg: #f0f2f5; --card: #ffffff; --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; }
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-    .container { max-width: 1000px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
-    
-    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
-    input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
-    button { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-    
-    .btn-add { background: var(--success); }
-    .btn-scan { background: var(--primary); }
-    .btn-share { background: #1da1f2; font-size: 12px; margin-bottom: 5px; }
-    .btn-del { background: var(--danger); font-size: 12px; }
+    :root {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --primary: #3498db;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+    }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
-    th { background: #34495e; color: white; border-radius: 4px; }
-    
-    .qr-container { display: flex; justify-content: center; padding: 5px; }
-    .qr-container img { width: 100px; height: 100px; }
-    
-    #reader { width: 100%; max-width: 400px; margin: 15px auto; border-radius: 12px; overflow: hidden; }
-    .actions { display: flex; flex-direction: column; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 10px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: var(--card);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+
+    .form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-add {
+      background: var(--success);
+    }
+
+    .btn-scan {
+      background: var(--primary);
+    }
+
+    .btn-share {
+      background: #1da1f2;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .btn-del {
+      background: var(--danger);
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      min-width: 900px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+      vertical-align: middle;
+      word-break: break-word;
+    }
+
+    th {
+      background: #34495e;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+
+    .qr-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 110px;
+      min-height: 110px;
+    }
+
+    .qr-container img {
+      width: 100px;
+      height: 100px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 15px auto;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 120px;
+    }
+
+    .total-box {
+      margin-top: 20px;
+      text-align: right;
+      font-size: 20px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    @media(max-width: 768px){
+      table {
+        font-size: 13px;
+      }
+
+      th, td {
+        padding: 8px;
+      }
+
+      .qr-container img {
+        width: 80px;
+        height: 80px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -46,6 +172,7 @@
     <input type="number" id="qty" placeholder="Кол-во">
     <input type="text" id="unit" placeholder="Ед. (шт/кг)">
     <input type="number" id="price" placeholder="Цена ₴">
+
     <button class="btn-add" onclick="addItem()">➕ Добавить</button>
     <button class="btn-scan" onclick="startScanner()">📷 Сканировать QR</button>
   </div>
@@ -58,12 +185,18 @@
         <th>Товар</th>
         <th>Остаток</th>
         <th>Цена</th>
-        <th>QR-Инфо</th>
+        <th>Сумма</th>
+        <th>QR-Код</th>
         <th>Действия</th>
       </tr>
     </thead>
+
     <tbody id="tableBody"></tbody>
   </table>
+
+  <div class="total-box">
+    💰 Общая сумма: <span id="grandTotal">0</span> ₴
+  </div>
 </div>
 
 <script>
@@ -74,100 +207,248 @@
   }
 
   function render() {
+
     const tbody = document.getElementById('tableBody');
+    const grandTotal = document.getElementById('grandTotal');
+
     tbody.innerHTML = '';
 
+    let totalSum = 0;
+
     inventory.forEach((item, index) => {
+
       const row = document.createElement('tr');
-      // Создаем компактную строку данных для QR
-      const qrData = `SKLAD:${item.name}|${item.unit}|${item.price}`;
+
+      const qrData =
+        `SKLAD:${item.name}|${item.unit}|${item.price}`;
+
+      const itemSum = Number(item.qty) * Number(item.price);
+
+      totalSum += itemSum;
 
       row.innerHTML = `
-        <td><strong>${item.name}</strong></td>
-        <td>${item.qty} ${item.unit}</td>
-        <td>${item.price} ₴</td>
-        <td class="qr-container"><div id="qr-${index}"></div></td>
+        <td>
+          <strong>${item.name}</strong>
+        </td>
+
+        <td>
+          ${item.qty} ${item.unit}
+        </td>
+
+        <td>
+          ${item.price} ₴
+        </td>
+
+        <td>
+          <strong>${itemSum.toFixed(2)} ₴</strong>
+        </td>
+
+        <td class="qr-container">
+          <div id="qr-${index}"></div>
+        </td>
+
         <td class="actions">
-          <button class="btn-share" onclick="shareQR(${index})">📲 Переслать</button>
-          <button class="btn-del" onclick="deleteItem(${index})">Удалить</button>
+
+          <button class="btn-share"
+            onclick="shareQR(${index})">
+            📲 Переслать
+          </button>
+
+          <button class="btn-del"
+            onclick="deleteItem(${index})">
+            Удалить
+          </button>
+
         </td>
       `;
+
       tbody.appendChild(row);
 
-      // Генерация QR-кода
-      new QRCode(document.getElementById(`qr-${index}`), {
+      const qrElement = document.getElementById(`qr-${index}`);
+
+      qrElement.innerHTML = '';
+
+      new QRCode(qrElement, {
         text: qrData,
         width: 100,
         height: 100
       });
     });
+
+    grandTotal.textContent = totalSum.toFixed(2);
   }
 
   function addItem() {
-    const name = document.getElementById('name').value;
-    const qty = parseFloat(document.getElementById('qty').value);
-    const unit = document.getElementById('unit').value || 'шт';
-    const price = document.getElementById('price').value || 0;
 
-    if (!name || isNaN(qty)) return alert("Введите название и количество!");
+    const name = document.getElementById('name').value.trim();
 
-    inventory.push({ name, qty, unit, price });
+    const qty = parseFloat(
+      document.getElementById('qty').value
+    );
+
+    const unit =
+      document.getElementById('unit').value.trim() || 'шт';
+
+    const price = parseFloat(
+      document.getElementById('price').value
+    ) || 0;
+
+    if (!name || isNaN(qty)) {
+      alert("Введите название и количество!");
+      return;
+    }
+
+    inventory.push({
+      name,
+      qty,
+      unit,
+      price
+    });
+
     save();
     render();
-    ['name', 'qty', 'unit', 'price'].forEach(id => document.getElementById(id).value = '');
+
+    ['name', 'qty', 'unit', 'price']
+      .forEach(id => {
+        document.getElementById(id).value = '';
+      });
   }
 
   function startScanner() {
-    const scanner = new Html5Qrcode('reader');
-    scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => {
-      if (text.startsWith("SKLAD:")) {
-        const data = text.replace("SKLAD:", "").split('|');
-        const name = data[0];
-        const unit = data[1];
-        const price = data[2];
 
-        const existing = inventory.find(i => i.name === name);
-        if (existing) {
-          let add = prompt(`Товар "${name}" найден. Сколько добавить к остатку?`, "1");
-          if (add) existing.qty += parseFloat(add);
+    const scanner = new Html5Qrcode('reader');
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 250 },
+
+      (text) => {
+
+        if (text.startsWith("SKLAD:")) {
+
+          const data =
+            text.replace("SKLAD:", "").split('|');
+
+          const name = data[0];
+          const unit = data[1];
+          const price = Number(data[2]);
+
+          const existing =
+            inventory.find(i => i.name === name);
+
+          if (existing) {
+
+            let add = prompt(
+              `Товар "${name}" найден. Сколько добавить?`,
+              "1"
+            );
+
+            if (add) {
+              existing.qty += parseFloat(add);
+            }
+
+          } else {
+
+            let qty = parseFloat(
+              prompt(
+                `Новый товар: ${name}. Количество:`,
+                "1"
+              )
+            ) || 1;
+
+            inventory.push({
+              name,
+              qty,
+              unit,
+              price
+            });
+          }
+
+          save();
+          render();
+
+          scanner.stop();
+
+          alert("✅ Готово!");
+
         } else {
-          let qty = parseFloat(prompt(`Новый товар: ${name}. Введите количество:`, "1")) || 1;
-          inventory.push({ name, qty, unit, price });
+
+          alert("❌ Это не QR склада!");
+          scanner.stop();
         }
-        
-        save();
-        render();
-        scanner.stop();
-        alert("Готово!");
-      } else {
-        alert("Это не наш QR-код!");
-        scanner.stop();
       }
-    }).catch(e => alert("Ошибка камеры"));
+
+    ).catch(() => {
+      alert("Ошибка камеры");
+    });
   }
 
   async function shareQR(index) {
-    const container = document.getElementById(`qr-${index}`);
-    const img = container.querySelector('img');
-    
-    if (!img) return alert("Ошибка: QR еще не создан");
 
-    const response = await fetch(img.src);
-    const blob = await response.blob();
-    const file = new File([blob], `qr-${inventory[index].name}.png`, { type: 'image/png' });
+    const container =
+      document.getElementById(`qr-${index}`);
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file] });
-    } else {
-      const link = document.createElement('a');
-      link.href = img.src;
-      link.download = `qr-${inventory[index].name}.png`;
-      link.click();
+    const img =
+      container.querySelector('img');
+
+    if (!img) {
+      alert("QR еще не создан");
+      return;
+    }
+
+    try {
+
+      const response = await fetch(img.src);
+
+      const blob = await response.blob();
+
+      const file = new File(
+        [blob],
+        `qr-${inventory[index].name}.png`,
+        { type: 'image/png' }
+      );
+
+      // 📱 Поделиться через мессенджеры
+      if (
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+
+        await navigator.share({
+          title: inventory[index].name,
+          text: `QR товара: ${inventory[index].name}`,
+          files: [file]
+        });
+
+      } else {
+
+        // fallback
+        const link = document.createElement('a');
+
+        link.href = img.src;
+
+        link.download =
+          `qr-${inventory[index].name}.png`;
+
+        link.click();
+      }
+
+    } catch (e) {
+
+      alert("Ошибка отправки QR");
     }
   }
 
   function deleteItem(index) {
-    if(confirm('Удалить?')) { inventory.splice(index, 1); save(); render(); }
+
+    if (confirm('Удалить товар?')) {
+
+      inventory.splice(index, 1);
+
+      save();
+
+      render();
+    }
   }
 
   render();
