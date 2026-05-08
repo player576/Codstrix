@@ -5,46 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Складской учет материалов</title>
 
+  <!-- Библиотеки -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 15px; }
-    .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-    h1 { text-align: center; color: #2c3e50; font-size: 22px; }
+    :root {
+      --primary: #2c3e50;
+      --success: #27ae60;
+      --info: #0088cc;
+      --danger: #e74c3c;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--primary); }
+    .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
+    
     .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px; }
-    input, button { padding: 12px; border-radius: 10px; border: 1px solid #dfe6e9; outline: none; font-size: 14px; }
-    button { border: none; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
-    .add-btn { background: #27ae60; }
-    .scan-btn { background: #2980b9; }
-    .share-btn { background: #0088cc; } /* Цвет Telegram/Мессенджеров */
+    input { padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 14px; outline: none; }
+    input:focus { border-color: var(--info); }
+    
+    button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; color: white; font-weight: 600; transition: 0.2s; }
+    button:active { transform: scale(0.98); }
+    
+    .add-btn { background: var(--success); }
+    .scan-btn { background: var(--primary); }
+    .share-btn { background: var(--info); }
     .print-btn { background: #8e44ad; }
-    .delete-btn { background: #e74c3c; }
+    .delete-btn { background: var(--danger); padding: 5px 10px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { background: #f8f9fa; padding: 12px; text-align: center; font-size: 13px; border-bottom: 2px solid #eee; }
+    td { padding: 15px 10px; text-align: center; border-bottom: 1px solid #eee; }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; overflow: hidden; border-radius: 8px; }
-    th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
-    th { background: #34495e; color: white; font-weight: normal; font-size: 13px; }
-    
-    .barcode-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-    canvas { max-width: 140px; height: auto; display: block; }
+    .barcode-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    canvas { max-width: 130px; height: auto; }
     
     .actions { display: flex; flex-direction: column; gap: 8px; }
     
-    #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 10px; overflow: hidden; }
+    #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 12px; overflow: hidden; }
+    
+    @media (max-width: 600px) {
+      .form { grid-template-columns: 1fr 1fr; }
+      .add-btn, .scan-btn { grid-column: span 2; }
+      th:nth-child(3), td:nth-child(3) { display: none; } /* Скрываем ед. изм. на мобилках */
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>📦 Мой Склад</h1>
+  <h1>📦 Складской учет</h1>
 
   <div class="form">
-    <input type="text" id="material" placeholder="Название">
-    <input type="number" id="quantity" placeholder="Кол-во">
+    <input type="text" id="material" placeholder="Название материала">
+    <input type="number" id="quantity" placeholder="Количество">
     <input type="text" id="unit" placeholder="Ед. изм.">
     <input type="number" id="price" placeholder="Цена ₴">
-    <button class="add-btn" onclick="addMaterial()">➕ Добавить</button>
-    <button class="scan-btn" onclick="startScanner()">📷 Камера</button>
+    <button class="add-btn" onclick="addMaterial()">Добавить в базу</button>
+    <button class="scan-btn" onclick="startScanner()">📷 Сканировать</button>
   </div>
 
   <div id="reader"></div>
@@ -52,8 +70,8 @@
   <table>
     <thead>
       <tr>
-        <th>Товар</th>
-        <th>Остаток</th>
+        <th>Материал</th>
+        <th>Кол-во</th>
         <th>Цена</th>
         <th>Штрих-код</th>
         <th>Действия</th>
@@ -85,20 +103,19 @@
         <td>${item.quantity} ${item.unit}</td>
         <td>${item.price} ₴</td>
         <td>
-          <div class="barcode-container">
+          <div class="barcode-box">
             <canvas id="barcode-${index}"></canvas>
-            <small style="color:#7f8c8d">${item.barcode}</small>
+            <small>${item.barcode}</small>
           </div>
         </td>
         <td class="actions">
-          <button class="share-btn" onclick="shareAsImage(${index})">📲 В мессенджер</button>
+          <button class="share-btn" onclick="shareAsImage(${index})">📲 Переслать PNG</button>
           <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
-          <button class="delete-btn" onclick="deleteMaterial(${index})">🗑</button>
+          <button class="delete-btn" onclick="deleteMaterial(${index})">✕</button>
         </td>
       `;
       tableBody.appendChild(row);
 
-      // Генерация графики в Canvas
       JsBarcode(`#barcode-${index}`, item.barcode, {
         format: 'CODE128',
         displayValue: false,
@@ -109,39 +126,35 @@
     });
   }
 
-  // ФУНКЦИЯ ОТПРАВКИ PNG ФАЙЛА
+  // ГЛАВНАЯ ФУНКЦИЯ ОТПРАВКИ ИМЕННО КАРТИНКИ
   async function shareAsImage(index) {
     const item = materials[index];
     const canvas = document.getElementById(`barcode-${index}`);
     
-    // 1. Конвертируем Canvas в Blob (бинарные данные PNG)
+    // Превращаем в PNG
     canvas.toBlob(async (blob) => {
-      if (!blob) {
-        alert("Ошибка создания изображения");
-        return;
-      }
+      if (!blob) return;
 
-      // 2. Создаем файл из Blob
-      const file = new File([blob], `barcode-${item.barcode}.png`, { type: 'image/png' });
+      const fileName = `barcode-${item.barcode}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
 
-      // 3. Проверяем возможность отправки файла
+      // Проверка на возможность отправки файлов (требуется HTTPS)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
+          // Отправляем ТОЛЬКО файл, чтобы мессенджер не переключался на текст
           await navigator.share({
-            files: [file],
-            title: `Штрих-код: ${item.material}`,
-            text: `Товар: ${item.material}\nКод: ${item.barcode}`
+            files: [file]
           });
         } catch (err) {
-          console.error("Пользователь отменил отправку или произошла ошибка:", err);
+          console.log("Отправка отменена");
         }
       } else {
-        // Запасной вариант: скачивание
+        // Если пересылка не поддерживается браузером — скачиваем
         const link = document.createElement('a');
         link.href = canvas.toDataURL("image/png");
-        link.download = `barcode-${item.material}.png`;
+        link.download = fileName;
         link.click();
-        alert("Ваш браузер не поддерживает прямую отправку файлов. PNG скачан в память устройства.");
+        alert("Браузер не смог открыть мессенджер. Штрих-код сохранен в Загрузки/Галерею.");
       }
     }, 'image/png');
   }
@@ -149,20 +162,23 @@
   function addMaterial() {
     const material = document.getElementById('material').value;
     const quantity = document.getElementById('quantity').value;
-    const unit = document.getElementById('unit').value;
+    const unit = document.getElementById('unit').value || 'шт';
     const price = document.getElementById('price').value;
 
-    if (!material || !quantity || !price) return alert("Заполните поля!");
+    if (!material || !quantity || !price) return alert("Заполните название, количество и цену!");
 
     materials.push({ material, quantity, unit, price, barcode: generateBarcode() });
     saveMaterials();
     renderTable();
 
-    document.querySelectorAll('.form input').forEach(i => i.value = '');
+    // Очистка
+    document.getElementById('material').value = '';
+    document.getElementById('quantity').value = '';
+    document.getElementById('price').value = '';
   }
 
   function deleteMaterial(index) {
-    if (confirm("Удалить позицию?")) {
+    if (confirm("Удалить этот товар?")) {
       materials.splice(index, 1);
       saveMaterials();
       renderTable();
@@ -172,8 +188,8 @@
   function printBarcode(index) {
     const item = materials[index];
     const win = window.open('', '', 'width=400,height=400');
-    win.document.write(`<html><body style="text-align:center;padding:20px;">
-      <h2>${item.material}</h2>
+    win.document.write(`<html><body style="text-align:center;padding:40px;font-family:sans-serif;">
+      <h3>${item.material}</h3>
       <canvas id="p"></canvas>
       <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
       <script>
@@ -188,9 +204,13 @@
     const scanner = new Html5Qrcode('reader');
     scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => {
       const found = materials.find(m => m.barcode === text);
-      alert(found ? `Найден: ${found.material}` : "Код не найден");
+      if (found) {
+        alert(`Найдено: ${found.material}\nОстаток: ${found.quantity} ${found.unit}`);
+      } else {
+        alert("Код " + text + " не найден в базе данных");
+      }
       scanner.stop();
-    }).catch(e => alert("Ошибка камеры"));
+    }).catch(() => alert("Камера не найдена или доступ запрещен"));
   }
 
   renderTable();
