@@ -3,54 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Складской учет материалов</title>
+  <title>Склад: Синхронизация через коды</title>
 
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-    .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #2c3e50; }
-    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
-    input, button { padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
-    button { border: none; cursor: pointer; color: white; background: #27ae60; font-weight: bold; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #2c3e50; font-size: 20px; }
+    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    input, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; outline: none; }
+    button { border: none; cursor: pointer; color: white; font-weight: bold; }
+    .add-btn { background: #27ae60; }
     .scan-btn { background: #2980b9; }
-    .share-btn { background: #1da1f2; }
-    .print-btn { background: #8e44ad; }
-    .delete-btn { background: #e74c3c; }
-    .edit-btn { background: #3498db; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+    .share-btn { background: #1da1f2; padding: 6px 10px; font-size: 12px; }
+    .delete-btn { background: #e74c3c; padding: 6px 10px; font-size: 12px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+    th, td { border: 1px solid #eee; padding: 10px; text-align: center; font-size: 14px; }
     th { background: #34495e; color: white; }
-    #reader { width: 100%; max-width: 400px; margin: 20px auto; border-radius: 10px; overflow: hidden; }
-    canvas { max-width: 150px; height: auto; }
-    .actions { display: flex; flex-direction: column; gap: 5px; }
+    
+    #reader { width: 100%; max-width: 400px; margin: 10px auto; border-radius: 8px; overflow: hidden; }
+    canvas { max-width: 180px; height: auto; }
+    .status-msg { color: #7f8c8d; font-size: 12px; text-align: center; margin-top: 5px; }
   </style>
 </head>
 <body>
+
 <div class="container">
-  <h1>📦 Складской учет</h1>
+  <h1>📦 Складской учет (Обмен через коды)</h1>
 
   <div class="form">
-    <input type="text" id="material" placeholder="Название материала">
-    <input type="number" id="quantity" placeholder="Количество">
-    <input type="text" id="unit" placeholder="Единица (шт, кг)">
+    <input type="text" id="material" placeholder="Название">
+    <input type="number" id="quantity" placeholder="Кол-во">
+    <input type="text" id="unit" placeholder="Ед. изм.">
     <input type="number" id="price" placeholder="Цена ₴">
-    <button onclick="addMaterial()">➕ Добавить вручную</button>
-    <button class="scan-btn" onclick="startScanner()">📷 Сканировать код</button>
+    <button class="add-btn" onclick="addMaterial()">➕ Добавить</button>
+    <button class="scan-btn" onclick="startScanner()">📷 Сканировать QR/Код</button>
   </div>
 
   <div id="reader"></div>
+  <div class="status-msg">При сканировании данные товара добавятся автоматически</div>
 
   <table>
     <thead>
       <tr>
-        <th>Материал</th>
-        <th>Кол-во</th>
-        <th>Ед.</th>
-        <th>Цена / Сумма</th>
-        <th>Штрих-код</th>
+        <th>Товар</th>
+        <th>Остаток</th>
+        <th>Цена</th>
+        <th>Код / Данные</th>
         <th>Действия</th>
       </tr>
     </thead>
@@ -65,8 +67,10 @@
     localStorage.setItem('materials', JSON.stringify(materials));
   }
 
-  function generateBarcode() {
-    return Math.floor(100000000000 + Math.random() * 900000000000).toString();
+  // Создаем "умный" код, который содержит данные в сжатом виде
+  function createDataPayload(item) {
+    // Формат: Название|Ед|Цена
+    return `${item.material}|${item.unit}|${item.price}`;
   }
 
   function renderTable() {
@@ -75,99 +79,106 @@
 
     materials.forEach((item, index) => {
       const row = document.createElement('tr');
-      const sum = item.quantity * item.price;
+      const payload = createDataPayload(item);
 
       row.innerHTML = `
         <td><strong>${item.material}</strong></td>
-        <td>${item.quantity}</td>
-        <td>${item.unit}</td>
-        <td>${item.price} ₴<br><small>Σ: ${sum} ₴</small></td>
+        <td>${item.quantity} ${item.unit}</td>
+        <td>${item.price} ₴</td>
         <td>
           <canvas id="barcode-${index}"></canvas>
-          <div><small>${item.barcode}</small></div>
         </td>
-        <td class="actions">
-          <button class="share-btn" onclick="shareBarcode(${index})">📲 Переслать</button>
-          <button class="print-btn" onclick="printBarcode(${index})">🖨 Печать</button>
-          <button class="edit-btn" onclick="editRow(${index})">✏️</button>
-          <button class="delete-btn" onclick="deleteMaterial(${index})">✕</button>
+        <td>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <button class="share-btn" onclick="shareBarcode(${index})">📲 Переслать</button>
+            <button class="delete-btn" onclick="deleteMaterial(${index})">Удалить</button>
+          </div>
         </td>
       `;
       tableBody.appendChild(row);
 
-      JsBarcode(`#barcode-${index}`, item.barcode, {
-        format: 'CODE128', displayValue: false, width: 2, height: 40, margin: 10
+      // Генерируем штрих-код. Используем формат CODE128, он хорошо держит текст.
+      JsBarcode(`#barcode-${index}`, payload, {
+        format: 'CODE128',
+        displayValue: true,
+        fontSize: 10,
+        width: 1,
+        height: 40,
+        margin: 10
       });
     });
   }
 
-  // ОТПРАВКА ИМЕННО PNG
-  async function shareBarcode(index) {
-    const item = materials[index];
-    const canvas = document.getElementById(`barcode-${index}`);
-    
-    canvas.toBlob(async (blob) => {
-      const file = new File([blob], `barcode-${item.barcode}.png`, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: item.material });
-        } catch (e) { console.error(e); }
-      } else {
-        const link = document.createElement('a');
-        link.download = `barcode-${item.barcode}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
-    }, 'image/png');
-  }
-
-  // ФУНКЦИЯ СКАНЕРА: Добавление при сканировании
+  // СКАНЕР С АВТОМАТИЧЕСКИМ ЗАПОЛНЕНИЕМ
   function startScanner() {
     const scanner = new Html5Qrcode('reader');
     scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (decodedText) => {
-      // Ищем, есть ли такой код уже в базе
-      const existingIndex = materials.findIndex(m => m.barcode === decodedText);
+      
+      try {
+        // Разбираем данные из кода (Название|Ед|Цена)
+        const parts = decodedText.split('|');
+        
+        if (parts.length >= 3) {
+          const name = parts[0];
+          const unit = parts[1];
+          const price = parseFloat(parts[2]);
 
-      if (existingIndex !== -1) {
-        let addQty = prompt(`Товар "${materials[existingIndex].material}" найден. Сколько добавить к остатку?`, "1");
-        if (addQty !== null) {
-          materials[existingIndex].quantity += parseFloat(addQty);
-          alert("Количество обновлено!");
-        }
-      } else {
-        // Если кода нет — создаем новый товар
-        let name = prompt("Обнаружен новый штрих-код! Введите название материала:");
-        if (name) {
-          let qty = parseFloat(prompt("Количество:", "1")) || 0;
-          let unit = prompt("Единица измерения:", "шт") || "шт";
-          let price = parseFloat(prompt("Цена за единицу:", "0")) || 0;
+          // Ищем, есть ли уже такой товар
+          const existingIndex = materials.findIndex(m => m.material === name && m.unit === unit);
 
-          materials.push({
-            material: name,
-            quantity: qty,
-            unit: unit,
-            price: price,
-            barcode: decodedText // Используем отсканированный код!
-          });
-          alert("Новый товар добавлен в таблицу!");
+          if (existingIndex !== -1) {
+            let addQty = prompt(`Товар "${name}" найден. Сколько добавить к остатку?`, "1");
+            if (addQty) materials[existingIndex].quantity += parseFloat(addQty);
+          } else {
+            let qty = parseFloat(prompt(`Новый товар: "${name}". Введите количество для добавления:`, "1")) || 1;
+            materials.push({
+              material: name,
+              unit: unit,
+              price: price,
+              quantity: qty
+            });
+          }
+          
+          alert("Данные успешно синхронизированы!");
+          saveMaterials();
+          renderTable();
+          scanner.stop();
+        } else {
+          alert("Этот код не содержит данных склада: " + decodedText);
+          scanner.stop();
         }
+      } catch (e) {
+        alert("Ошибка при чтении данных кода.");
+        scanner.stop();
       }
+    }).catch(err => alert("Камера недоступна"));
+  }
 
-      saveMaterials();
-      renderTable();
-      scanner.stop();
-    }).catch(err => alert("Ошибка камеры или доступ запрещен"));
+  async function shareBarcode(index) {
+    const item = materials[index];
+    const canvas = document.getElementById(`barcode-${index}`);
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], `sklad-${item.material}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        const link = document.createElement('a');
+        link.download = `sklad-${item.material}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      }
+    });
   }
 
   function addMaterial() {
-    const material = document.getElementById('material').value.trim();
-    const quantity = parseFloat(document.getElementById('quantity').value);
-    const unit = document.getElementById('unit').value.trim();
-    const price = parseFloat(document.getElementById('price').value);
+    const m = document.getElementById('material').value;
+    const q = parseFloat(document.getElementById('quantity').value);
+    const u = document.getElementById('unit').value || 'шт';
+    const p = parseFloat(document.getElementById('price').value) || 0;
 
-    if (!material || isNaN(quantity)) return alert('Введите название и количество');
+    if (!m || isNaN(q)) return alert("Введите название и количество");
 
-    materials.push({ material, quantity, unit, price: price || 0, barcode: generateBarcode() });
+    materials.push({ material: m, quantity: q, unit: u, price: p });
     saveMaterials();
     renderTable();
     ['material', 'quantity', 'unit', 'price'].forEach(id => document.getElementById(id).value = '');
@@ -175,35 +186,6 @@
 
   function deleteMaterial(index) {
     if(confirm('Удалить?')) { materials.splice(index, 1); saveMaterials(); renderTable(); }
-  }
-
-  function editRow(index) {
-    const item = materials[index];
-    const row = document.getElementById('tableBody').rows[index];
-    row.innerHTML = `
-      <td><input value="${item.material}" id="edit-m-${index}"></td>
-      <td><input type="number" value="${item.quantity}" id="edit-q-${index}"></td>
-      <td><input value="${item.unit}" id="edit-u-${index}"></td>
-      <td><input type="number" value="${item.price}" id="edit-p-${index}"></td>
-      <td>${item.barcode}</td>
-      <td><button onclick="saveEdit(${index})" style="background:#f39c12">💾</button></td>
-    `;
-  }
-
-  function saveEdit(index) {
-    materials[index].material = document.getElementById(`edit-m-${index}`).value;
-    materials[index].quantity = parseFloat(document.getElementById(`edit-q-${index}`).value);
-    materials[index].unit = document.getElementById(`edit-u-${index}`).value;
-    materials[index].price = parseFloat(document.getElementById(`edit-p-${index}`).value);
-    saveMaterials();
-    renderTable();
-  }
-
-  function printBarcode(index) {
-    const item = materials[index];
-    const win = window.open('', '', 'width=500,height=400');
-    win.document.write(`<html><body style="text-align:center;padding:50px;"><h2>${item.material}</h2><canvas id="p"></canvas><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script><script>JsBarcode('#p','${item.barcode}',{format:'CODE128',width:2,height:100,displayValue:true});setTimeout(()=>{window.print();window.close();},500);<\/script></body></html>`);
-    win.document.close();
   }
 
   renderTable();
