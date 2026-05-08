@@ -3,48 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Склад: Синхронизация через коды</title>
+  <title>Складской учет PRO (QR-Sync)</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <!-- Библиотека для генерации QR-кодов -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Библиотека для сканера -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-    .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #2c3e50; font-size: 20px; }
-    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-    input, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; outline: none; }
-    button { border: none; cursor: pointer; color: white; font-weight: bold; }
-    .add-btn { background: #27ae60; }
-    .scan-btn { background: #2980b9; }
-    .share-btn { background: #1da1f2; padding: 6px 10px; font-size: 12px; }
-    .delete-btn { background: #e74c3c; padding: 6px 10px; font-size: 12px; }
+    :root { --bg: #f0f2f5; --card: #ffffff; --primary: #3498db; --success: #2ecc71; --danger: #e74c3c; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+    .container { max-width: 1000px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-    th, td { border: 1px solid #eee; padding: 10px; text-align: center; font-size: 14px; }
-    th { background: #34495e; color: white; }
+    .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
+    button { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
     
-    #reader { width: 100%; max-width: 400px; margin: 10px auto; border-radius: 8px; overflow: hidden; }
-    canvas { max-width: 180px; height: auto; }
-    .status-msg { color: #7f8c8d; font-size: 12px; text-align: center; margin-top: 5px; }
+    .btn-add { background: var(--success); }
+    .btn-scan { background: var(--primary); }
+    .btn-share { background: #1da1f2; font-size: 12px; margin-bottom: 5px; }
+    .btn-del { background: var(--danger); font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+    th { background: #34495e; color: white; border-radius: 4px; }
+    
+    .qr-container { display: flex; justify-content: center; padding: 5px; }
+    .qr-container img { width: 100px; height: 100px; }
+    
+    #reader { width: 100%; max-width: 400px; margin: 15px auto; border-radius: 12px; overflow: hidden; }
+    .actions { display: flex; flex-direction: column; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>📦 Складской учет (Обмен через коды)</h1>
+  <h1>📦 Складской учет (QR-Версия)</h1>
 
   <div class="form">
-    <input type="text" id="material" placeholder="Название">
-    <input type="number" id="quantity" placeholder="Кол-во">
-    <input type="text" id="unit" placeholder="Ед. изм.">
+    <input type="text" id="name" placeholder="Название">
+    <input type="number" id="qty" placeholder="Кол-во">
+    <input type="text" id="unit" placeholder="Ед. (шт/кг)">
     <input type="number" id="price" placeholder="Цена ₴">
-    <button class="add-btn" onclick="addMaterial()">➕ Добавить</button>
-    <button class="scan-btn" onclick="startScanner()">📷 Сканировать QR/Код</button>
+    <button class="btn-add" onclick="addItem()">➕ Добавить</button>
+    <button class="btn-scan" onclick="startScanner()">📷 Сканировать QR</button>
   </div>
 
   <div id="reader"></div>
-  <div class="status-msg">При сканировании данные товара добавятся автоматически</div>
 
   <table>
     <thead>
@@ -52,7 +58,7 @@
         <th>Товар</th>
         <th>Остаток</th>
         <th>Цена</th>
-        <th>Код / Данные</th>
+        <th>QR-Инфо</th>
         <th>Действия</th>
       </tr>
     </thead>
@@ -61,134 +67,111 @@
 </div>
 
 <script>
-  let materials = JSON.parse(localStorage.getItem('materials')) || [];
+  let inventory = JSON.parse(localStorage.getItem('my_inventory')) || [];
 
-  function saveMaterials() {
-    localStorage.setItem('materials', JSON.stringify(materials));
+  function save() {
+    localStorage.setItem('my_inventory', JSON.stringify(inventory));
   }
 
-  // Создаем "умный" код, который содержит данные в сжатом виде
-  function createDataPayload(item) {
-    // Формат: Название|Ед|Цена
-    return `${item.material}|${item.unit}|${item.price}`;
-  }
+  function render() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
 
-  function renderTable() {
-    const tableBody = document.getElementById('tableBody');
-    tableBody.innerHTML = '';
-
-    materials.forEach((item, index) => {
+    inventory.forEach((item, index) => {
       const row = document.createElement('tr');
-      const payload = createDataPayload(item);
+      // Создаем компактную строку данных для QR
+      const qrData = `SKLAD:${item.name}|${item.unit}|${item.price}`;
 
       row.innerHTML = `
-        <td><strong>${item.material}</strong></td>
-        <td>${item.quantity} ${item.unit}</td>
+        <td><strong>${item.name}</strong></td>
+        <td>${item.qty} ${item.unit}</td>
         <td>${item.price} ₴</td>
-        <td>
-          <canvas id="barcode-${index}"></canvas>
-        </td>
-        <td>
-          <div style="display:flex; flex-direction:column; gap:5px;">
-            <button class="share-btn" onclick="shareBarcode(${index})">📲 Переслать</button>
-            <button class="delete-btn" onclick="deleteMaterial(${index})">Удалить</button>
-          </div>
+        <td class="qr-container"><div id="qr-${index}"></div></td>
+        <td class="actions">
+          <button class="btn-share" onclick="shareQR(${index})">📲 Переслать</button>
+          <button class="btn-del" onclick="deleteItem(${index})">Удалить</button>
         </td>
       `;
-      tableBody.appendChild(row);
+      tbody.appendChild(row);
 
-      // Генерируем штрих-код. Используем формат CODE128, он хорошо держит текст.
-      JsBarcode(`#barcode-${index}`, payload, {
-        format: 'CODE128',
-        displayValue: true,
-        fontSize: 10,
-        width: 1,
-        height: 40,
-        margin: 10
+      // Генерация QR-кода
+      new QRCode(document.getElementById(`qr-${index}`), {
+        text: qrData,
+        width: 100,
+        height: 100
       });
     });
   }
 
-  // СКАНЕР С АВТОМАТИЧЕСКИМ ЗАПОЛНЕНИЕМ
+  function addItem() {
+    const name = document.getElementById('name').value;
+    const qty = parseFloat(document.getElementById('qty').value);
+    const unit = document.getElementById('unit').value || 'шт';
+    const price = document.getElementById('price').value || 0;
+
+    if (!name || isNaN(qty)) return alert("Введите название и количество!");
+
+    inventory.push({ name, qty, unit, price });
+    save();
+    render();
+    ['name', 'qty', 'unit', 'price'].forEach(id => document.getElementById(id).value = '');
+  }
+
   function startScanner() {
     const scanner = new Html5Qrcode('reader');
-    scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (decodedText) => {
-      
-      try {
-        // Разбираем данные из кода (Название|Ед|Цена)
-        const parts = decodedText.split('|');
-        
-        if (parts.length >= 3) {
-          const name = parts[0];
-          const unit = parts[1];
-          const price = parseFloat(parts[2]);
+    scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => {
+      if (text.startsWith("SKLAD:")) {
+        const data = text.replace("SKLAD:", "").split('|');
+        const name = data[0];
+        const unit = data[1];
+        const price = data[2];
 
-          // Ищем, есть ли уже такой товар
-          const existingIndex = materials.findIndex(m => m.material === name && m.unit === unit);
-
-          if (existingIndex !== -1) {
-            let addQty = prompt(`Товар "${name}" найден. Сколько добавить к остатку?`, "1");
-            if (addQty) materials[existingIndex].quantity += parseFloat(addQty);
-          } else {
-            let qty = parseFloat(prompt(`Новый товар: "${name}". Введите количество для добавления:`, "1")) || 1;
-            materials.push({
-              material: name,
-              unit: unit,
-              price: price,
-              quantity: qty
-            });
-          }
-          
-          alert("Данные успешно синхронизированы!");
-          saveMaterials();
-          renderTable();
-          scanner.stop();
+        const existing = inventory.find(i => i.name === name);
+        if (existing) {
+          let add = prompt(`Товар "${name}" найден. Сколько добавить к остатку?`, "1");
+          if (add) existing.qty += parseFloat(add);
         } else {
-          alert("Этот код не содержит данных склада: " + decodedText);
-          scanner.stop();
+          let qty = parseFloat(prompt(`Новый товар: ${name}. Введите количество:`, "1")) || 1;
+          inventory.push({ name, qty, unit, price });
         }
-      } catch (e) {
-        alert("Ошибка при чтении данных кода.");
+        
+        save();
+        render();
+        scanner.stop();
+        alert("Готово!");
+      } else {
+        alert("Это не наш QR-код!");
         scanner.stop();
       }
-    }).catch(err => alert("Камера недоступна"));
+    }).catch(e => alert("Ошибка камеры"));
   }
 
-  async function shareBarcode(index) {
-    const item = materials[index];
-    const canvas = document.getElementById(`barcode-${index}`);
-    canvas.toBlob(async (blob) => {
-      const file = new File([blob], `sklad-${item.material}.png`, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
-      } else {
-        const link = document.createElement('a');
-        link.download = `sklad-${item.material}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-      }
-    });
+  async function shareQR(index) {
+    const container = document.getElementById(`qr-${index}`);
+    const img = container.querySelector('img');
+    
+    if (!img) return alert("Ошибка: QR еще не создан");
+
+    const response = await fetch(img.src);
+    const blob = await response.blob();
+    const file = new File([blob], `qr-${inventory[index].name}.png`, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+    } else {
+      const link = document.createElement('a');
+      link.href = img.src;
+      link.download = `qr-${inventory[index].name}.png`;
+      link.click();
+    }
   }
 
-  function addMaterial() {
-    const m = document.getElementById('material').value;
-    const q = parseFloat(document.getElementById('quantity').value);
-    const u = document.getElementById('unit').value || 'шт';
-    const p = parseFloat(document.getElementById('price').value) || 0;
-
-    if (!m || isNaN(q)) return alert("Введите название и количество");
-
-    materials.push({ material: m, quantity: q, unit: u, price: p });
-    saveMaterials();
-    renderTable();
-    ['material', 'quantity', 'unit', 'price'].forEach(id => document.getElementById(id).value = '');
+  function deleteItem(index) {
+    if(confirm('Удалить?')) { inventory.splice(index, 1); save(); render(); }
   }
 
-  function deleteMaterial(index) {
-    if(confirm('Удалить?')) { materials.splice(index, 1); saveMaterials(); renderTable(); }
-  }
-
-  renderTable();
+  render();
 </script>
+
 </body>
 </html>
