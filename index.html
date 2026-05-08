@@ -1,1 +1,179 @@
-Нужна прикладная программа, которая будет вести складской учет материалов.
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Складской учет материалов</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    .form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      background: #27ae60;
+      color: white;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #219150;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+
+    th {
+      background: #34495e;
+      color: white;
+    }
+
+    .delete-btn {
+      background: #e74c3c;
+    }
+
+    .delete-btn:hover {
+      background: #c0392b;
+    }
+
+    .summary {
+      margin-top: 20px;
+      text-align: right;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📦 Складской учет материалов</h1>
+
+    <div class="form">
+      <input type="text" id="material" placeholder="Материал">
+      <input type="number" id="quantity" placeholder="Количество">
+      <input type="text" id="unit" placeholder="Единица">
+      <input type="number" id="price" placeholder="Цена за единицу">
+      <button onclick="addMaterial()">Добавить</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Материал</th>
+          <th>Количество</th>
+          <th>Единица</th>
+          <th>Цена</th>
+          <th>Сумма</th>
+          <th>Удалить</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="summary" id="total">Общая стоимость: 0 ₴</div>
+  </div>
+
+  <script>
+    let materials = JSON.parse(localStorage.getItem('materials')) || [];
+
+    function saveMaterials() {
+      localStorage.setItem('materials', JSON.stringify(materials));
+    }
+
+    function renderTable() {
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+
+      let total = 0;
+
+      materials.forEach((item, index) => {
+        const row = document.createElement('tr');
+        const sum = item.quantity * item.price;
+        total += sum;
+
+        row.innerHTML = `
+          <td>${item.material}</td>
+          <td>${item.quantity}</td>
+          <td>${item.unit}</td>
+          <td>${item.price} ₴</td>
+          <td>${sum} ₴</td>
+          <td><button class="delete-btn" onclick="deleteMaterial(${index})">X</button></td>
+        `;
+
+        tableBody.appendChild(row);
+      });
+
+      document.getElementById('total').innerText = `Общая стоимость: ${total} ₴`;
+    }
+
+    function addMaterial() {
+      const material = document.getElementById('material').value.trim();
+      const quantity = parseFloat(document.getElementById('quantity').value);
+      const unit = document.getElementById('unit').value.trim();
+      const price = parseFloat(document.getElementById('price').value);
+
+      if (!material || !quantity || !unit || isNaN(price)) {
+        alert('Заполните все поля!');
+        return;
+      }
+
+      materials.push({ material, quantity, unit, price });
+      saveMaterials();
+      renderTable();
+
+      document.getElementById('material').value = '';
+      document.getElementById('quantity').value = '';
+      document.getElementById('unit').value = '';
+      document.getElementById('price').value = '';
+    }
+
+    function deleteMaterial(index) {
+      materials.splice(index, 1);
+      saveMaterials();
+      renderTable();
+    }
+
+    renderTable();
+  </script>
+</body>
+</html>
