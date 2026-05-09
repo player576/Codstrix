@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Складской учет PRO (QR-Sync)</title>
 
   <!-- QR -->
@@ -181,7 +182,7 @@
     <input
       type="number"
       id="qty"
-      placeholder="Кол-во">
+      placeholder="Остаток">
 
     <input
       type="text"
@@ -196,13 +197,17 @@
     <button
       class="btn-add"
       onclick="addItem()">
+
       ➕ Добавить
+
     </button>
 
     <button
       class="btn-scan"
       onclick="startScanner()">
+
       📷 Сканировать QR
+
     </button>
 
   </div>
@@ -213,12 +218,19 @@
 
     <thead>
       <tr>
+
         <th>Товар</th>
+
         <th>Остаток</th>
+
         <th>Цена</th>
+
         <th>Сумма</th>
+
         <th>QR-Код</th>
+
         <th>Действия</th>
+
       </tr>
     </thead>
 
@@ -227,8 +239,10 @@
   </table>
 
   <div class="total-box">
+
     💰 Общая сумма:
     <span id="grandTotal">0</span> ₴
+
   </div>
 
 </div>
@@ -265,13 +279,19 @@ function render(){
     const row =
       document.createElement('tr');
 
-    // ✅ UTF-8 QR
+    // ✅ Полное кодирование товара
     const qrData = encodeURIComponent(
-      `SKLAD:${item.name}|${item.unit}|${item.price}`
+      JSON.stringify({
+        name:item.name,
+        qty:Number(item.qty),
+        unit:item.unit,
+        price:Number(item.price)
+      })
     );
 
     const itemSum =
-      Number(item.qty) * Number(item.price);
+      Number(item.qty) *
+      Number(item.price);
 
     totalSum += itemSum;
 
@@ -282,15 +302,17 @@ function render(){
       </td>
 
       <td>
-        ${item.qty} ${item.unit}
+        ${Number(item.qty)} ${item.unit}
       </td>
 
       <td>
-        ${item.price} ₴
+        ${Number(item.price).toFixed(2)} ₴
       </td>
 
       <td>
-        <strong>${itemSum.toFixed(2)} ₴</strong>
+        <strong>
+          ${itemSum.toFixed(2)} ₴
+        </strong>
       </td>
 
       <td class="qr-container">
@@ -298,6 +320,7 @@ function render(){
       </td>
 
       <td>
+
         <div class="actions">
 
           <button
@@ -317,6 +340,7 @@ function render(){
           </button>
 
         </div>
+
       </td>
     `;
 
@@ -346,8 +370,9 @@ function addItem(){
     .value.trim();
 
   const qty =
-    parseFloat(
-      document.getElementById('qty').value
+    Number(
+      document.getElementById('qty')
+      .value
     );
 
   const unit =
@@ -355,24 +380,27 @@ function addItem(){
     .value.trim() || 'шт';
 
   const price =
-    parseFloat(
-      document.getElementById('price').value
+    Number(
+      document.getElementById('price')
+      .value
     ) || 0;
 
   if(!name || isNaN(qty)){
 
     alert(
-      "Введите название и количество!"
+      "Введите название и остаток!"
     );
 
     return;
   }
 
   inventory.push({
+
     name,
     qty,
     unit,
     price
+
   });
 
   save();
@@ -382,7 +410,8 @@ function addItem(){
   ['name','qty','unit','price']
   .forEach(id=>{
 
-    document.getElementById(id).value='';
+    document.getElementById(id)
+    .value='';
   });
 }
 
@@ -402,21 +431,38 @@ function startScanner(){
 
     (text)=>{
 
-      // ✅ Декодируем UTF-8
-      text = decodeURIComponent(text);
+      try{
 
-      if(text.startsWith("SKLAD:")){
+        // ✅ UTF-8 decode
+        const decoded =
+          decodeURIComponent(text);
 
+        // ✅ JSON decode
         const data =
-          text.replace(
-            "SKLAD:",
-            ""
-          ).split('|');
+          JSON.parse(decoded);
 
-        const name = data[0];
-        const unit = data[1];
+        const name =
+          data.name;
+
+        const qty =
+          Number(data.qty);
+
+        const unit =
+          data.unit;
+
         const price =
-          Number(data[2]);
+          Number(data.price);
+
+        if(!name){
+
+          alert(
+            "❌ Неверный QR"
+          );
+
+          scanner.stop();
+
+          return;
+        }
 
         const existing =
           inventory.find(
@@ -425,33 +471,20 @@ function startScanner(){
 
         if(existing){
 
-          let add =
-            prompt(
-              `Товар "${name}" найден. Сколько добавить?`,
-              "1"
-            );
-
-          if(add){
-
-            existing.qty +=
-              parseFloat(add);
-          }
+          // ✅ правильное сложение остатков
+          existing.qty =
+            Number(existing.qty) +
+            Number(qty);
 
         }else{
 
-          let qty =
-            parseFloat(
-              prompt(
-                `Новый товар: ${name}. Количество:`,
-                "1"
-              )
-            ) || 1;
-
           inventory.push({
+
             name,
             qty,
             unit,
             price
+
           });
         }
 
@@ -461,21 +494,26 @@ function startScanner(){
 
         scanner.stop();
 
-        alert("✅ Готово!");
+        alert(
+          "✅ Товар успешно добавлен!"
+        );
 
-      }else{
+      }catch(e){
 
         alert(
-          "❌ Это не QR склада!"
+          "❌ Ошибка QR-кода"
         );
 
         scanner.stop();
       }
+
     }
 
   ).catch(()=>{
 
-    alert("Ошибка камеры");
+    alert(
+      "Ошибка камеры"
+    );
   });
 }
 
@@ -508,8 +546,11 @@ async function shareQR(index){
 
     const file =
       new File(
+
         [blob],
+
         `qr-${inventory[index].name}.png`,
+
         {
           type:'image/png'
         }
@@ -531,6 +572,7 @@ async function shareQR(index){
           `QR товара: ${inventory[index].name}`,
 
         files:[file]
+
       });
 
     }else{
