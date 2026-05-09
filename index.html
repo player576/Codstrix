@@ -265,8 +265,10 @@ function render(){
     const row =
       document.createElement('tr');
 
-    const qrData =
-      `SKLAD:${item.name}|${item.unit}|${item.price}`;
+    // ✅ UTF-8 QR
+    const qrData = encodeURIComponent(
+      `SKLAD:${item.name}|${item.unit}|${item.price}`
+    );
 
     const itemSum =
       Number(item.qty) * Number(item.price);
@@ -399,6 +401,9 @@ function startScanner(){
     },
 
     (text)=>{
+
+      // ✅ Декодируем UTF-8
+      text = decodeURIComponent(text);
 
       if(text.startsWith("SKLAD:")){
 
