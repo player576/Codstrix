@@ -87,6 +87,11 @@
       font-size:12px;
     }
 
+    .btn-edit{
+      background:#f39c12;
+      font-size:12px;
+    }
+
     .btn-del{
       background:var(--danger);
       font-size:12px;
@@ -279,7 +284,7 @@ function render(){
     const row =
       document.createElement('tr');
 
-    // ✅ Полное кодирование товара
+    // QR с полными данными
     const qrData = encodeURIComponent(
       JSON.stringify({
         name:item.name,
@@ -328,6 +333,14 @@ function render(){
             onclick="shareQR(${index})">
 
             📲 Переслать
+
+          </button>
+
+          <button
+            class="btn-edit"
+            onclick="editItem(${index})">
+
+            ✏️ Изменить
 
           </button>
 
@@ -433,11 +446,11 @@ function startScanner(){
 
       try{
 
-        // ✅ UTF-8 decode
+        // UTF decode
         const decoded =
           decodeURIComponent(text);
 
-        // ✅ JSON decode
+        // JSON decode
         const data =
           JSON.parse(decoded);
 
@@ -471,7 +484,7 @@ function startScanner(){
 
         if(existing){
 
-          // ✅ правильное сложение остатков
+          // складываем остатки
           existing.qty =
             Number(existing.qty) +
             Number(qty);
@@ -594,6 +607,56 @@ async function shareQR(index){
       "Ошибка отправки QR"
     );
   }
+}
+
+function editItem(index){
+
+  const item = inventory[index];
+
+  const newName =
+    prompt(
+      "Название:",
+      item.name
+    );
+
+  if(newName === null) return;
+
+  const newQty =
+    prompt(
+      "Остаток:",
+      item.qty
+    );
+
+  if(newQty === null) return;
+
+  const newUnit =
+    prompt(
+      "Единица:",
+      item.unit
+    );
+
+  if(newUnit === null) return;
+
+  const newPrice =
+    prompt(
+      "Цена:",
+      item.price
+    );
+
+  if(newPrice === null) return;
+
+  inventory[index] = {
+
+    name:newName,
+    qty:Number(newQty),
+    unit:newUnit,
+    price:Number(newPrice)
+
+  };
+
+  save();
+
+  render();
 }
 
 function deleteItem(index){
