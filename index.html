@@ -1,216 +1,807 @@
-<!DOCTYPE html>    
-<html lang="ru">    
-<head>    
-  <meta charset="UTF-8">    
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">    
-    
-  <title>Складской учет PRO (QR + Excel)</title>    
-    
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>    
-  <script src="https://unpkg.com/html5-qrcode"></script>    
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>    
-    
-  <style>    
-    /* твой CSS без изменений */    
-  </style>    
-</head>    
-    
-<body>    
-    
-<div class="container">    
-    
-  <h1>📦 Складской учет (QR + Excel)</h1>    
-    
-  <div class="form">    
-    
-    <input type="text" id="name" placeholder="Название">    
-    <input type="number" id="qty" placeholder="Остаток">    
-    <input type="text" id="unit" placeholder="Ед. (шт/кг)">    
-    <input type="number" id="price" placeholder="Цена ₴">    
-    
-    <button class="btn-add" onclick="addItem()">➕ Добавить</button>    
-    <button class="btn-scan" onclick="startScanner()">📷 Сканировать QR</button>    
-    <button class="btn-excel" onclick="exportExcel()">📊 Excel</button>    
-    
-  </div>    
-    
-  <div id="reader"></div>    
-    
-  <table>    
-    <thead>    
-      <tr>    
-        <th>Товар</th>    
-        <th>Остаток</th>    
-        <th>Цена</th>    
-        <th>Сумма</th>    
-        <th>QR-Код</th>    
-        <th>Действия</th>    
-      </tr>    
-    </thead>    
-    <tbody id="tableBody"></tbody>    
-  </table>    
-    
-</div>    
-    
-<script>    
-    
-let inventory = JSON.parse(localStorage.getItem('my_inventory')) || [];    
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-// 🔥 ДОБАВЛЕНО: память последнего состояния QR
-let lastScanMap = {};    
+  <title>Складской учет PRO (QR + Excel)</title>
 
-function save(){    
-  localStorage.setItem('my_inventory', JSON.stringify(inventory));    
-}    
-    
-function render(){    
-  const tbody = document.getElementById('tableBody');    
-  tbody.innerHTML = '';    
-    
-  inventory.forEach((item,index)=>{    
-    
-    const row = document.createElement('tr');    
-    
-    const qrData = encodeURIComponent(JSON.stringify(item));    
-    
-    row.innerHTML = `    
-      <td>${item.name}</td>    
-      <td>${item.qty} ${item.unit}</td>    
-      <td>${item.price}</td>    
-      <td>${item.qty * item.price}</td>    
-      <td><div id="qr-${index}"></div></td>    
-      <td>    
-        <button onclick="editItem(${index})">✏️</button>    
-        <button onclick="deleteItem(${index})">🗑</button>    
-      </td>    
-    `;    
-    
-    tbody.appendChild(row);    
-    
-    new QRCode(document.getElementById(`qr-${index}`),{    
-      text: qrData,    
-      width:180,    
-      height:180,    
-      colorDark:"#000",    
-      colorLight:"#fff",    
-      correctLevel:QRCode.CorrectLevel.H    
-    });    
-    
-  });    
-}    
-    
-function addItem(){    
-    
-  inventory.push({    
-    name:document.getElementById('name').value,    
-    qty:Number(document.getElementById('qty').value),    
-    unit:document.getElementById('unit').value,    
-    price:Number(document.getElementById('price').value)    
-  });    
-    
-  save();    
-  render();    
-}    
-    
-// 🔥 ГЛАВНОЕ ИЗМЕНЕНИЕ (СКАНЕР)
-function startScanner(){    
-    
-  const scanner = new Html5Qrcode("reader");    
-    
-  scanner.start(    
-    { facingMode:"environment" },    
-    { fps:30, qrbox:300 },    
-    
-    (text)=>{    
-    
-      try{    
-    
-        const data = JSON.parse(decodeURIComponent(text));    
-    
-        const key = data.name;    
-    
-        const newState = JSON.stringify(data);    
-    
-        const oldState = lastScanMap[key];    
-    
-        // ❗ ЕСЛИ НЕТ ИЗМЕНЕНИЙ — НЕ СКАНИРУЕМ
-        if(oldState === newState){    
-          alert("⚠️ QR без изменений — игнор");    
-          scanner.stop();    
-          return;    
-        }    
-    
-        lastScanMap[key] = newState;    
-    
-        let existing = inventory.find(i=>i.name===data.name);    
-    
-        if(existing){    
-    
-          existing.qty = Number(data.qty);    
-          existing.unit = data.unit;    
-          existing.price = Number(data.price);    
-    
-        } else {    
-    
-          inventory.push(data);    
-    
-        }    
-    
-        save();    
-        render();    
-    
-        scanner.stop();    
-    
-        alert("✅ QR обновлён");    
-    
-      }catch(e){    
-        alert("❌ Ошибка QR");    
-        scanner.stop();    
-      }    
-    
-    }    
-  );    
-}    
-    
-function editItem(i){    
-    
-  let it = inventory[i];    
-    
-  it.name = prompt("Название", it.name);    
-  it.qty = Number(prompt("Остаток", it.qty));    
-  it.unit = prompt("Ед", it.unit);    
-  it.price = Number(prompt("Цена", it.price));    
-    
-  save();    
-  render();    
-}    
-    
-function deleteItem(i){    
-  inventory.splice(i,1);    
-  save();    
-  render();    
-}    
-    
-function exportExcel(){    
-    
-  const data = inventory.map(i=>({    
-    Товар:i.name,    
-    Остаток:i.qty,    
-    Ед:i.unit,    
-    Цена:i.price,    
-    Сумма:i.qty*i.price    
-  }));    
-    
-  const ws = XLSX.utils.json_to_sheet(data);    
-  const wb = XLSX.utils.book_new();    
-    
-  XLSX.utils.book_append_sheet(wb,ws,"Склад");    
-  XLSX.writeFile(wb,"sklad.xlsx");    
-}    
-    
-render();    
-    
-</script>    
-    
-</body>    
+  <!-- QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+
+    :root{
+      --bg:#f0f2f5;
+      --card:#ffffff;
+      --primary:#3498db;
+      --success:#2ecc71;
+      --danger:#e74c3c;
+    }
+
+    body{
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      background:var(--bg);
+      margin:0;
+      padding:10px;
+    }
+
+    .container{
+      max-width:1300px;
+      margin:auto;
+      background:var(--card);
+      padding:20px;
+      border-radius:15px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.1);
+      overflow-x:auto;
+    }
+
+    h1{
+      text-align:center;
+      color:#2c3e50;
+      margin-bottom:20px;
+    }
+
+    .form{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    input{
+      padding:12px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      outline:none;
+      font-size:14px;
+    }
+
+    button{
+      padding:10px;
+      border:none;
+      border-radius:8px;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.3s;
+    }
+
+    button:hover{
+      opacity:0.9;
+    }
+
+    .btn-add{
+      background:var(--success);
+    }
+
+    .btn-scan{
+      background:var(--primary);
+    }
+
+    .btn-excel{
+      background:#27ae60;
+    }
+
+    .btn-share{
+      background:#1da1f2;
+      font-size:12px;
+    }
+
+    .btn-edit{
+      background:#f39c12;
+      font-size:12px;
+    }
+
+    .btn-del{
+      background:var(--danger);
+      font-size:12px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:15px;
+      min-width:1100px;
+    }
+
+    th,td{
+      padding:12px;
+      border-bottom:1px solid #eee;
+      text-align:center;
+      vertical-align:middle;
+    }
+
+    th{
+      background:#34495e;
+      color:white;
+    }
+
+    .qr-container{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-width:190px;
+      min-height:190px;
+    }
+
+    .qr-container img{
+      width:180px;
+      height:180px;
+      image-rendering:pixelated;
+    }
+
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+    }
+
+    #reader{
+      width:100%;
+      max-width:420px;
+      margin:15px auto;
+      border-radius:12px;
+      overflow:hidden;
+      border:3px solid #3498db;
+    }
+
+    .total-box{
+      margin-top:20px;
+      text-align:right;
+      font-size:22px;
+      font-weight:bold;
+      color:#2c3e50;
+    }
+
+    @media(max-width:768px){
+
+      table{
+        font-size:13px;
+      }
+
+      th,td{
+        padding:8px;
+      }
+
+      .qr-container img{
+        width:150px;
+        height:150px;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>📦 Складской учет (QR + Excel)</h1>
+
+  <div class="form">
+
+    <input
+      type="text"
+      id="name"
+      placeholder="Название">
+
+    <input
+      type="number"
+      id="qty"
+      placeholder="Остаток">
+
+    <input
+      type="text"
+      id="unit"
+      placeholder="Ед. (шт/кг)">
+
+    <input
+      type="number"
+      id="price"
+      placeholder="Цена ₴">
+
+    <button
+      class="btn-add"
+      onclick="addItem()">
+
+      ➕ Добавить
+
+    </button>
+
+    <button
+      class="btn-scan"
+      onclick="startScanner()">
+
+      📷 Сканировать QR
+
+    </button>
+
+    <button
+      class="btn-excel"
+      onclick="exportExcel()">
+
+      📊 Excel
+
+    </button>
+
+  </div>
+
+  <div id="reader"></div>
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>Товар</th>
+
+        <th>Остаток</th>
+
+        <th>Цена</th>
+
+        <th>Сумма</th>
+
+        <th>QR-Код</th>
+
+        <th>Действия</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody id="tableBody"></tbody>
+
+  </table>
+
+  <div class="total-box">
+
+    💰 Общая сумма:
+    <span id="grandTotal">0</span> ₴
+
+  </div>
+
+</div>
+
+<script>
+
+let inventory =
+  JSON.parse(
+    localStorage.getItem('my_inventory')
+  ) || [];
+
+// Память последнего QR
+let lastQrState = {};
+
+function save(){
+
+  localStorage.setItem(
+    'my_inventory',
+    JSON.stringify(inventory)
+  );
+}
+
+function render(){
+
+  const tbody =
+    document.getElementById('tableBody');
+
+  const grandTotal =
+    document.getElementById('grandTotal');
+
+  tbody.innerHTML = '';
+
+  let totalSum = 0;
+
+  inventory.forEach((item,index)=>{
+
+    const row =
+      document.createElement('tr');
+
+    const qrData = encodeURIComponent(
+      JSON.stringify({
+        name:item.name,
+        qty:Number(item.qty),
+        unit:item.unit,
+        price:Number(item.price)
+      })
+    );
+
+    const itemSum =
+      Number(item.qty) *
+      Number(item.price);
+
+    totalSum += itemSum;
+
+    row.innerHTML = `
+
+      <td>
+        <strong>${item.name}</strong>
+      </td>
+
+      <td>
+        ${Number(item.qty)} ${item.unit}
+      </td>
+
+      <td>
+        ${Number(item.price).toFixed(2)} ₴
+      </td>
+
+      <td>
+        <strong>
+          ${itemSum.toFixed(2)} ₴
+        </strong>
+      </td>
+
+      <td class="qr-container">
+
+        <div id="qr-${index}"></div>
+
+      </td>
+
+      <td>
+
+        <div class="actions">
+
+          <button
+            class="btn-share"
+            onclick="shareQR(${index})">
+
+            📲 Переслать
+
+          </button>
+
+          <button
+            class="btn-edit"
+            onclick="editItem(${index})">
+
+            ✏️ Изменить
+
+          </button>
+
+          <button
+            class="btn-del"
+            onclick="deleteItem(${index})">
+
+            🗑 Удалить
+
+          </button>
+
+        </div>
+
+      </td>
+    `;
+
+    tbody.appendChild(row);
+
+    const qrElement =
+      document.getElementById(`qr-${index}`);
+
+    qrElement.innerHTML = '';
+
+    new QRCode(qrElement,{
+
+      text: qrData,
+
+      width: 180,
+
+      height: 180,
+
+      colorDark : "#000000",
+
+      colorLight : "#ffffff",
+
+      correctLevel : QRCode.CorrectLevel.H
+
+    });
+
+  });
+
+  grandTotal.textContent =
+    totalSum.toFixed(2);
+}
+
+function addItem(){
+
+  const name =
+    document.getElementById('name')
+    .value.trim();
+
+  const qty =
+    Number(
+      document.getElementById('qty')
+      .value
+    );
+
+  const unit =
+    document.getElementById('unit')
+    .value.trim() || 'шт';
+
+  const price =
+    Number(
+      document.getElementById('price')
+      .value
+    ) || 0;
+
+  if(!name || isNaN(qty)){
+
+    alert(
+      "Введите название и остаток!"
+    );
+
+    return;
+  }
+
+  inventory.push({
+
+    name,
+    qty,
+    unit,
+    price
+
+  });
+
+  save();
+
+  render();
+
+  ['name','qty','unit','price']
+  .forEach(id=>{
+
+    document.getElementById(id)
+    .value='';
+  });
+}
+
+function startScanner(){
+
+  const scanner =
+    new Html5Qrcode('reader');
+
+  scanner.start(
+
+    { facingMode:'environment' },
+
+    {
+
+      fps:30,
+
+      qrbox:{
+        width:300,
+        height:300
+      },
+
+      aspectRatio:1.0,
+
+      disableFlip:false
+
+    },
+
+    (text)=>{
+
+      try{
+
+        const decoded =
+          decodeURIComponent(text);
+
+        const data =
+          JSON.parse(decoded);
+
+        const name =
+          data.name;
+
+        const qty =
+          Number(data.qty);
+
+        const unit =
+          data.unit;
+
+        const price =
+          Number(data.price);
+
+        if(!name){
+
+          alert(
+            "❌ Неверный QR"
+          );
+
+          scanner.stop();
+
+          return;
+        }
+
+        // СОСТОЯНИЕ QR
+        const currentState =
+          JSON.stringify({
+            qty,
+            unit,
+            price
+          });
+
+        // ЕСЛИ ИЗМЕНЕНИЙ НЕТ
+        if(
+          lastQrState[name] ===
+          currentState
+        ){
+
+          alert(
+            "⚠️ Изменений нет"
+          );
+
+          scanner.stop();
+
+          return;
+        }
+
+        // СОХРАНЯЕМ СОСТОЯНИЕ
+        lastQrState[name] =
+          currentState;
+
+        const existing =
+          inventory.find(
+            i=>i.name===name
+          );
+
+        if(existing){
+
+          existing.qty = qty;
+
+          existing.unit = unit;
+
+          existing.price = price;
+
+        }else{
+
+          inventory.push({
+
+            name,
+            qty,
+            unit,
+            price
+
+          });
+        }
+
+        save();
+
+        render();
+
+        scanner.stop();
+
+        alert(
+          "✅ QR обновлён"
+        );
+
+      }catch(e){
+
+        alert(
+          "❌ Ошибка QR-кода"
+        );
+
+        scanner.stop();
+      }
+
+    }
+
+  ).catch(()=>{
+
+    alert(
+      "Ошибка камеры"
+    );
+  });
+}
+
+async function shareQR(index){
+
+  const container =
+    document.getElementById(
+      `qr-${index}`
+    );
+
+  const img =
+    container.querySelector('img');
+
+  if(!img){
+
+    alert(
+      "QR еще не создан"
+    );
+
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(img.src);
+
+    const blob =
+      await response.blob();
+
+    const file =
+      new File(
+
+        [blob],
+
+        `qr-${inventory[index].name}.png`,
+
+        {
+          type:'image/png'
+        }
+      );
+
+    if(
+      navigator.canShare &&
+      navigator.canShare({
+        files:[file]
+      })
+    ){
+
+      await navigator.share({
+
+        title:
+          inventory[index].name,
+
+        text:
+          `QR товара: ${inventory[index].name}`,
+
+        files:[file]
+
+      });
+
+    }else{
+
+      const link =
+        document.createElement('a');
+
+      link.href = img.src;
+
+      link.download =
+        `qr-${inventory[index].name}.png`;
+
+      link.click();
+    }
+
+  }catch(e){
+
+    alert(
+      "Ошибка отправки QR"
+    );
+  }
+}
+
+function editItem(index){
+
+  const item = inventory[index];
+
+  const newName =
+    prompt(
+      "Название:",
+      item.name
+    );
+
+  if(newName === null) return;
+
+  const newQty =
+    prompt(
+      "Остаток:",
+      item.qty
+    );
+
+  if(newQty === null) return;
+
+  const newUnit =
+    prompt(
+      "Единица:",
+      item.unit
+    );
+
+  if(newUnit === null) return;
+
+  const newPrice =
+    prompt(
+      "Цена:",
+      item.price
+    );
+
+  if(newPrice === null) return;
+
+  inventory[index] = {
+
+    name:newName,
+    qty:Number(newQty),
+    unit:newUnit,
+    price:Number(newPrice)
+
+  };
+
+  save();
+
+  render();
+}
+
+function deleteItem(index){
+
+  if(confirm('Удалить товар?')){
+
+    inventory.splice(index,1);
+
+    save();
+
+    render();
+  }
+}
+
+function exportExcel(){
+
+  if(inventory.length === 0){
+
+    alert(
+      "Нет данных для Excel"
+    );
+
+    return;
+  }
+
+  const excelData =
+    inventory.map(item=>({
+
+      "Товар":
+      item.name,
+
+      "Остаток":
+      item.qty,
+
+      "Единица":
+      item.unit,
+
+      "Цена":
+      Number(item.price),
+
+      "Сумма":
+      Number(item.qty) *
+      Number(item.price)
+
+    }));
+
+  const worksheet =
+    XLSX.utils.json_to_sheet(
+      excelData
+    );
+
+  const workbook =
+    XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+
+    workbook,
+
+    worksheet,
+
+    "Склад"
+
+  );
+
+  XLSX.writeFile(
+
+    workbook,
+
+    "Склад.xlsx"
+
+  );
+}
+
+render();
+
+</script>
+
+</body>
 </html>
