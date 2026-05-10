@@ -3,89 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Склад PRO FULL CLOUD</title>
 
+<title>📦 Sklad Cloud PRO</title>
+
+<!-- LIBS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#eef2f7}
 
-.hidden{display:none}
+/* ================= GLOBAL ================= */
 
-/* AUTH */
-.auth{
+body{
+  margin:0;
+  font-family:Arial;
+  background:#eef2f7;
+}
+
+.hidden{display:none!important}
+
+/* ================= LOADER ================= */
+
+.loader-screen{
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,0.9);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.circle{
+  width:60px;
+  height:60px;
+  border:6px solid #ddd;
+  border-top:6px solid #3498db;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  100%{transform:rotate(360deg)}
+}
+
+/* ================= AUTH ================= */
+
+.auth-screen{
   height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 
-.card{
+.auth-box{
   width:320px;
-  background:white;
+  background:#fff;
   padding:20px;
   border-radius:15px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.1);
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
 }
 
-input{
+.auth-box input{
   width:100%;
   padding:10px;
   margin:5px 0;
 }
 
-button{
+.auth-box button{
   width:100%;
   padding:10px;
   margin-top:5px;
-  border:none;
-  border-radius:10px;
   background:#3498db;
-  color:white;
+  color:#fff;
+  border:none;
 }
 
-/* LOADER */
-.loader{
-  position:fixed;
-  inset:0;
-  background:rgba(255,255,255,0.8);
-  display:flex;
-  justify-content:center;
-  align-items:center;
+/* ================= APP ================= */
+
+.app{
+  padding:10px;
 }
 
-.spin{
-  width:60px;
-  height:60px;
-  border:6px solid #ddd;
-  border-top:6px solid #3498db;
-  border-radius:50%;
-  animation:rot 1s linear infinite;
+.container{
+  max-width:1100px;
+  margin:auto;
+  background:#fff;
+  padding:15px;
+  border-radius:15px;
 }
 
-@keyframes rot{100%{transform:rotate(360deg)}}
-
-/* APP */
-.container{padding:15px}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
+input{
+  padding:10px;
+  margin:5px;
 }
+
+/* ================= TABLE ================= */
 
 table{
   width:100%;
-  margin-top:20px;
-  background:white;
   border-collapse:collapse;
 }
 
-th,td{
-  border-bottom:1px solid #eee;
-  padding:10px;
+td,th{
+  border:1px solid #ddd;
+  padding:8px;
   text-align:center;
 }
 
@@ -94,170 +116,217 @@ th{
   color:white;
 }
 
-.qr{
-  width:100px;
-  height:100px;
-}
 </style>
+
 </head>
 
 <body>
 
-<!-- LOADER -->
-<div id="loader" class="loader hidden">
-  <div class="spin"></div>
+<!-- ================= LOADER ================= -->
+
+<div id="loader" class="loader-screen hidden">
+  <div class="circle"></div>
 </div>
 
-<!-- AUTH -->
-<div id="auth" class="auth">
-  <div class="card">
-    <h2>📦 Склад PRO</h2>
+<!-- ================= AUTH ================= -->
+
+<div id="auth" class="auth-screen">
+
+  <div class="auth-box">
+
+    <h2>Вход</h2>
 
     <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Пароль">
+    <input id="password" type="password" placeholder="Password">
 
     <button onclick="login()">Войти</button>
     <button onclick="register()">Регистрация</button>
+
   </div>
-</div>
-
-<!-- APP -->
-<div id="app" class="hidden">
-<div class="container">
-
-<button onclick="logout()">🚪 Выйти</button>
-
-<h2>Склад</h2>
-
-<div class="grid">
-<input id="name" placeholder="Товар">
-<input id="qty" placeholder="Кол-во">
-<input id="unit" placeholder="Ед">
-<input id="price" placeholder="Цена">
-</div>
-
-<button onclick="addItem()">Добавить</button>
-<button onclick="scanQR()">QR скан</button>
-<button onclick="exportExcel()">Excel</button>
-
-<div id="reader"></div>
-
-<table>
-<thead>
-<tr>
-<th>Товар</th>
-<th>Кол-во</th>
-<th>Цена</th>
-<th>Сумма</th>
-<th>QR</th>
-</tr>
-</thead>
-
-<tbody id="table"></tbody>
-</table>
 
 </div>
+
+<!-- ================= APP ================= -->
+
+<div id="app" class="hidden app">
+
+  <div class="container">
+
+    <h2>📦 Склад</h2>
+
+    <input id="name" placeholder="Название">
+    <input id="qty" placeholder="Кол-во">
+    <input id="unit" placeholder="Ед">
+    <input id="price" placeholder="Цена">
+
+    <button onclick="addItem()">Добавить</button>
+    <button onclick="logout()">Выйти</button>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Товар</th>
+          <th>Кол-во</th>
+          <th>Цена</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+
+      <tbody id="table"></tbody>
+
+    </table>
+
+  </div>
+
 </div>
 
 <script>
 
-const URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+/* ================= SUPABASE ================= */
+
+const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
+const SUPABASE_KEY = "ВСТАВЬ_КЛЮЧ";
+
+/* ================= STATE ================= */
 
 let user = null;
 let items = [];
-let lastScan = {};
 
-function load(on){loader.classList.toggle("hidden",!on)}
+/* ================= LOADER ================= */
 
-async function api(url, opt={}){
-return fetch(URL+url,{
-...opt,
-headers:{
-apikey:KEY,
-"Content-Type":"application/json"
+function showLoader(){
+  document.getElementById("loader").classList.remove("hidden");
+  setTimeout(()=>hideLoader(), 6000);
 }
-})
+
+function hideLoader(){
+  document.getElementById("loader").classList.add("hidden");
+}
+
+/* ================= START APP ================= */
+
+window.onload = () => {
+  start();
+};
+
+function start(){
+
+  hideLoader();
+
+  const saved = localStorage.getItem("user");
+
+  if(!saved){
+    return;
+  }
+
+  user = JSON.parse(saved);
+
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+
+  load();
 }
 
 /* ================= AUTH ================= */
 
 async function register(){
-load(true);
 
-await api("/auth/v1/signup",{
-method:"POST",
-body:JSON.stringify({
-email:email.value,
-password:password.value
-})
-});
+  showLoader();
 
-load(false);
-alert("Готово");
+  const r = await fetch(SUPABASE_URL+"/auth/v1/signup",{
+    method:"POST",
+    headers:{
+      apikey:SUPABASE_KEY,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
+  });
+
+  const d = await r.json();
+
+  alert(d.user ? "OK" : "error");
+
+  hideLoader();
 }
 
 async function login(){
-load(true);
 
-let r = await api("/auth/v1/token?grant_type=password",{
-method:"POST",
-body:JSON.stringify({
-email:email.value,
-password:password.value
-})
-});
+  showLoader();
 
-let j = await r.json();
+  const r = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+    method:"POST",
+    headers:{
+      apikey:SUPABASE_KEY,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
+  });
 
-load(false);
+  const d = await r.json();
 
-if(!j.access_token){
-alert("Ошибка входа");
-return;
-}
+  if(!d.access_token){
+    alert("error");
+    hideLoader();
+    return;
+  }
 
-let p = JSON.parse(atob(j.access_token.split('.')[1]));
+  const payload = JSON.parse(atob(d.access_token.split(".")[1]));
 
-user = {id:p.sub};
+  user = {id:payload.sub};
 
-auth.classList.add("hidden");
-app.classList.remove("hidden");
+  localStorage.setItem("user",JSON.stringify(user));
 
-loadItems();
-}
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
 
-function logout(){
-localStorage.clear();
-location.reload();
+  load();
+
+  hideLoader();
 }
 
 /* ================= DATA ================= */
 
-async function loadItems(){
-let r = await api("/rest/v1/items?user_id=eq."+user.id);
-items = await r.json();
-render();
+async function load(){
+
+  const r = await fetch(
+    SUPABASE_URL+"/rest/v1/items?select=*",
+    {headers:{apikey:SUPABASE_KEY}}
+  );
+
+  items = await r.json();
+
+  render();
 }
 
 async function addItem(){
 
-let item = {
-name:name.value,
-qty:+qty.value,
-unit:unit.value,
-price:+price.value,
-user_id:user.id
-};
+  const item = {
+    name:name.value,
+    qty:qty.value,
+    unit:unit.value,
+    price:price.value,
+    user_id:user.id
+  };
 
-items.push(item);
+  items.push(item);
 
-render();
+  render();
 
-await api("/rest/v1/items",{
-method:"POST",
-body:JSON.stringify(item)
-});
+  await fetch(SUPABASE_URL+"/rest/v1/items",{
+    method:"POST",
+    headers:{
+      apikey:SUPABASE_KEY,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(item)
+  });
 
 }
 
@@ -265,103 +334,35 @@ body:JSON.stringify(item)
 
 function render(){
 
-table.innerHTML="";
+  const t = document.getElementById("table");
 
-items.forEach((i,k)=>{
+  t.innerHTML = "";
 
-let sum = i.qty*i.price;
+  items.forEach(i=>{
 
-let tr = document.createElement("tr");
+    t.innerHTML += `
+      <tr>
+        <td>${i.name}</td>
+        <td>${i.qty}</td>
+        <td>${i.price}</td>
+        <td>${i.qty*i.price}</td>
+      </tr>
+    `;
 
-tr.innerHTML=`
-<td>${i.name}</td>
-<td>${i.qty}</td>
-<td>${i.price}</td>
-<td>${sum}</td>
-<td><div id="q${k}"></div></td>
-`;
-
-table.appendChild(tr);
-
-new QRCode(q${k},{
-text:JSON.stringify(i),
-width:90,
-height:90
-});
-
-});
+  });
 
 }
 
-/* ================= QR SCAN ================= */
+/* ================= LOGOUT ================= */
 
-function scanQR(){
+function logout(){
 
-let sc = new Html5Qrcode("reader");
-
-sc.start(
-{facingMode:"environment"},
-{fps:10,qrbox:250},
-
-async(txt)=>{
-
-if(lastScan === txt) return;
-lastScan = txt;
-
-let d = JSON.parse(decodeURIComponent(txt));
-
-let ex = items.find(i=>i.name===d.name);
-
-if(ex){
-ex.qty = d.qty;
-ex.price = d.price;
-}else{
-items.push(d);
-}
-
-render();
-
-sc.stop();
-
-});
-
-}
-
-/* ================= EXCEL ================= */
-
-function exportExcel(){
-
-let data = items.map(i=>({
-Товар:i.name,
-Кол:i.qty,
-Цена:i.price,
-Сумма:i.qty*i.price
-}));
-
-let ws = XLSX.utils.json_to_sheet(data);
-let wb = XLSX.utils.book_new();
-
-XLSX.utils.book_append_sheet(wb,ws,"Склад");
-
-XLSX.writeFile(wb,"warehouse.xlsx");
-
-}
-
-/* AUTO LOGIN */
-window.onload=()=>{
-
-let u = localStorage.getItem("u");
-
-if(u){
-user = JSON.parse(u);
-auth.classList.add("hidden");
-app.classList.remove("hidden");
-loadItems();
-}
+  localStorage.removeItem("user");
+  location.reload();
 
 }
 
 </script>
 
 </body>
-</html>
+</html> 
