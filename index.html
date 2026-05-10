@@ -64,6 +64,7 @@ button{
   display:flex;
   justify-content:center;
   align-items:center;
+  z-index:999;
 }
 
 .circle{
@@ -149,7 +150,7 @@ td{
 <!-- AUTH -->
 <div id="auth" class="auth">
   <div class="card">
-    <h3>📦 Склад maximum</h3>
+    <h3>📦 Склад PRO</h3>
 
     <input id="email" placeholder="Почта">
     <input id="password" type="password" placeholder="Пароль">
@@ -215,16 +216,17 @@ let user = null;
 let items = [];
 let lastQR = {};
 
-function showLoader(v){
+/* LOADER */
+function show(v){
   document.getElementById('loader').classList.toggle('hidden', !v);
 }
 
-/* AUTH */
+/* REGISTER */
 async function register(){
 
-  showLoader(true);
+  show(true);
 
-  const res = await fetch(SUPABASE_URL+"/auth/v1/signup",{
+  await fetch(SUPABASE_URL+"/auth/v1/signup",{
     method:"POST",
     headers:{
       apikey:SUPABASE_KEY,
@@ -236,14 +238,14 @@ async function register(){
     })
   });
 
-  showLoader(false);
-
+  show(false);
   alert("Регистрация отправлена");
 }
 
+/* LOGIN */
 async function login(){
 
-  showLoader(true);
+  show(true);
 
   const res = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
     method:"POST",
@@ -259,7 +261,7 @@ async function login(){
 
   const data = await res.json();
 
-  showLoader(false);
+  show(false);
 
   if(!data.access_token){
     alert("Ошибка входа");
@@ -270,8 +272,8 @@ async function login(){
 
   localStorage.setItem("user",JSON.stringify(user));
 
-  document.getElementById('auth').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
+  auth.classList.add("hidden");
+  app.classList.remove("hidden");
 
   loadItems();
 }
@@ -280,8 +282,13 @@ async function login(){
 async function loadItems(){
 
   const res = await fetch(
-    SUPABASE_URL + "/rest/v1/items?user_id=eq."+user.id,
-    {headers:{apikey:SUPABASE_KEY}}
+    SUPABASE_URL+"/rest/v1/items?user_id=eq."+user.id,
+    {
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:"Bearer "+SUPABASE_KEY
+      }
+    }
   );
 
   items = await res.json();
@@ -290,13 +297,14 @@ async function loadItems(){
 }
 
 /* SAVE */
-async function saveItem(item){
+async function save(item){
 
   await fetch(SUPABASE_URL+"/rest/v1/items",{
     method:"POST",
     headers:{
       apikey:SUPABASE_KEY,
-      "Content-Type":"application/json"
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+SUPABASE_KEY
     },
     body:JSON.stringify({
       user_id:user.id,
@@ -318,7 +326,7 @@ async function addItem(){
 
   items.push(item);
 
-  await saveItem(item);
+  await save(item);
 
   render();
 }
@@ -362,7 +370,31 @@ function render(){
   total.innerText = sum;
 }
 
-/* SCANNER */
+/* EXCEL FIX */
+function exportExcel(){
+
+  if(items.length === 0){
+    alert("Нет данных");
+    return;
+  }
+
+  const data = items.map(i=>({
+    "Товар":i.name,
+    "Остаток":i.qty,
+    "Ед":i.unit,
+    "Цена":i.price,
+    "Сумма":i.qty*i.price
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb,ws,"Склад");
+
+  XLSX.writeFile(wb,"склад.xlsx");
+}
+
+/* SCAN */
 function startScan(){
 
   const scan = new Html5Qrcode("reader");
@@ -392,15 +424,15 @@ function startScan(){
   );
 }
 
-/* INIT */
+/* AUTO LOGIN */
 window.onload = ()=>{
 
   const saved = localStorage.getItem("user");
 
   if(saved){
     user = JSON.parse(saved);
-    document.getElementById('auth').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
+    auth.classList.add("hidden");
+    app.classList.remove("hidden");
     loadItems();
   }
 
