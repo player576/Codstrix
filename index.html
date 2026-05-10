@@ -4,13 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Складской учет PRO (QR-Sync)</title>
+  <title>Складской учет PRO (QR + Excel)</title>
 
   <!-- QR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Сканер -->
+  <!-- QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
 
@@ -80,6 +83,10 @@
 
     .btn-scan{
       background:var(--primary);
+    }
+
+    .btn-excel{
+      background:#27ae60;
     }
 
     .btn-share{
@@ -175,7 +182,7 @@
 
 <div class="container">
 
-  <h1>📦 Складской учет (QR-Версия)</h1>
+  <h1>📦 Складской учет (QR + Excel)</h1>
 
   <div class="form">
 
@@ -212,6 +219,14 @@
       onclick="startScanner()">
 
       📷 Сканировать QR
+
+    </button>
+
+    <button
+      class="btn-excel"
+      onclick="exportExcel()">
+
+      📊 Excel
 
     </button>
 
@@ -284,7 +299,6 @@ function render(){
     const row =
       document.createElement('tr');
 
-    // QR с полными данными
     const qrData = encodeURIComponent(
       JSON.stringify({
         name:item.name,
@@ -446,11 +460,9 @@ function startScanner(){
 
       try{
 
-        // UTF decode
         const decoded =
           decodeURIComponent(text);
 
-        // JSON decode
         const data =
           JSON.parse(decoded);
 
@@ -484,7 +496,6 @@ function startScanner(){
 
         if(existing){
 
-          // складываем остатки
           existing.qty =
             Number(existing.qty) +
             Number(qty);
@@ -669,6 +680,65 @@ function deleteItem(index){
 
     render();
   }
+}
+
+function exportExcel(){
+
+  if(inventory.length === 0){
+
+    alert(
+      "Нет данных для Excel"
+    );
+
+    return;
+  }
+
+  const excelData =
+    inventory.map(item=>({
+
+      "Товар":
+      item.name,
+
+      "Остаток":
+      item.qty,
+
+      "Единица":
+      item.unit,
+
+      "Цена":
+      Number(item.price),
+
+      "Сумма":
+      Number(item.qty) *
+      Number(item.price)
+
+    }));
+
+  const worksheet =
+    XLSX.utils.json_to_sheet(
+      excelData
+    );
+
+  const workbook =
+    XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+
+    workbook,
+
+    worksheet,
+
+    "Склад"
+
+  );
+
+  XLSX.writeFile(
+
+    workbook,
+
+    "Склад.xlsx"
+
+  );
 }
 
 render();
