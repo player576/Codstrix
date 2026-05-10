@@ -35,8 +35,10 @@ body{
 }
 
 .hidden{
-  display:none;
+  display:none !important;
 }
+
+/* ================= AUTH ================= */
 
 .auth-screen{
   width:100%;
@@ -50,25 +52,26 @@ body{
 
 .auth-card{
   width:100%;
-  max-width:420px;
+  max-width:430px;
   background:white;
   border-radius:20px;
   padding:30px;
-  box-shadow:0 4px 25px rgba(0,0,0,0.1);
+  box-shadow:0 4px 25px rgba(0,0,0,0.12);
 }
 
 .auth-title{
   text-align:center;
-  font-size:28px;
+  font-size:30px;
   margin-bottom:25px;
   color:#2c3e50;
+  font-weight:bold;
 }
 
 .auth-input{
   width:100%;
   box-sizing:border-box;
-  margin-bottom:15px;
   padding:14px;
+  margin-bottom:15px;
   border-radius:10px;
   border:1px solid #ddd;
   font-size:15px;
@@ -94,10 +97,12 @@ body{
   background:#2ecc71;
 }
 
+/* ================= LOADER ================= */
+
 .loading-screen{
   position:fixed;
   inset:0;
-  background:white;
+  background:rgba(255,255,255,0.9);
   display:flex;
   justify-content:center;
   align-items:center;
@@ -118,6 +123,8 @@ body{
     transform:rotate(360deg);
   }
 }
+
+/* ================= APP ================= */
 
 .container{
   max-width:1300px;
@@ -247,7 +254,7 @@ th,td{
 </head>
 <body>
 
-<!-- LOADER -->
+<!-- ================= LOADER ================= -->
 
 <div id="loadingScreen" class="loading-screen hidden">
 
@@ -255,7 +262,7 @@ th,td{
 
 </div>
 
-<!-- AUTH -->
+<!-- ================= AUTH ================= -->
 
 <div id="authScreen" class="auth-screen">
 
@@ -297,7 +304,7 @@ th,td{
 
 </div>
 
-<!-- APP -->
+<!-- ================= APP ================= -->
 
 <div id="appScreen" class="hidden">
 
@@ -315,48 +322,21 @@ th,td{
 
 <div class="form">
 
-<input
-  type="text"
-  id="name"
-  placeholder="Название">
+<input type="text" id="name" placeholder="Название">
+<input type="number" id="qty" placeholder="Остаток">
+<input type="text" id="unit" placeholder="Ед.">
+<input type="number" id="price" placeholder="Цена">
 
-<input
-  type="number"
-  id="qty"
-  placeholder="Остаток">
-
-<input
-  type="text"
-  id="unit"
-  placeholder="Ед.">
-
-<input
-  type="number"
-  id="price"
-  placeholder="Цена">
-
-<button
-  class="btn-add"
-  onclick="addItem()">
-
-  ➕ Добавить
-
+<button class="btn-add" onclick="addItem()">
+➕ Добавить
 </button>
 
-<button
-  class="btn-scan"
-  onclick="startScanner()">
-
-  📷 QR
-
+<button class="btn-scan" onclick="startScanner()">
+📷 QR
 </button>
 
-<button
-  class="btn-excel"
-  onclick="exportExcel()">
-
-  📊 Excel
-
+<button class="btn-excel" onclick="exportExcel()">
+📊 Excel
 </button>
 
 </div>
@@ -397,9 +377,7 @@ th,td{
 
 <script>
 
-/* =========================
-   SUPABASE
-========================= */
+/* ================= SUPABASE ================= */
 
 const SUPABASE_URL =
 'https://zwoaxfrijvtfclzdodpf.supabase.co';
@@ -407,19 +385,13 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
 'ВСТАВЬ_СВОЙ_ANON_KEY';
 
-/* =========================
-   STATE
-========================= */
+/* ================= STATE ================= */
 
 let inventory = [];
-
 let currentUser = null;
-
 let lastQrState = {};
 
-/* =========================
-   LOADER
-========================= */
+/* ================= LOADER ================= */
 
 function showLoader(){
 
@@ -439,9 +411,7 @@ function hideLoader(){
 
 }
 
-/* =========================
-   AUTH
-========================= */
+/* ================= AUTH ================= */
 
 async function register(){
 
@@ -477,10 +447,8 @@ async function register(){
           },
 
           body:JSON.stringify({
-
             email,
             password
-
           })
 
         }
@@ -492,6 +460,8 @@ async function register(){
 
     hideLoader();
 
+    console.log(data);
+
     if(data.user){
 
       alert('✅ Регистрация успешна');
@@ -499,8 +469,6 @@ async function register(){
     }else{
 
       alert('Ошибка регистрации');
-
-      console.log(data);
 
     }
 
@@ -510,7 +478,7 @@ async function register(){
 
     console.log(e);
 
-    alert('Ошибка');
+    alert('Ошибка регистрации');
 
   }
 
@@ -550,10 +518,8 @@ async function login(){
           },
 
           body:JSON.stringify({
-
             email,
             password
-
           })
 
         }
@@ -562,6 +528,8 @@ async function login(){
 
     const data =
       await response.json();
+
+    console.log(data);
 
     if(data.access_token){
 
@@ -572,7 +540,7 @@ async function login(){
         JSON.stringify(data.user)
       );
 
-      await loadInventory();
+      hideLoader();
 
       document
       .getElementById('authScreen')
@@ -584,13 +552,15 @@ async function login(){
       .classList
       .remove('hidden');
 
+      loadInventory();
+
     }else{
 
-      alert('❌ Неверный пароль');
+      hideLoader();
+
+      alert('❌ Неверная почта или пароль');
 
     }
-
-    hideLoader();
 
   }catch(e){
 
@@ -614,13 +584,14 @@ function logout(){
 
 }
 
-/* =========================
-   DATABASE
-========================= */
+/* ================= DATABASE ================= */
 
 async function loadInventory(){
 
-  if(!currentUser) return;
+  if(!currentUser){
+
+    return;
+  }
 
   try{
 
@@ -632,8 +603,7 @@ async function loadInventory(){
         {
 
           headers:{
-            'apikey':SUPABASE_KEY,
-            'Authorization':`Bearer ${SUPABASE_KEY}`
+            'apikey':SUPABASE_KEY
           }
 
         }
@@ -643,13 +613,29 @@ async function loadInventory(){
     const data =
       await response.json();
 
-    inventory = data || [];
+    console.log(data);
 
-    render();
+    if(Array.isArray(data)){
+
+      inventory = data;
+
+      render();
+
+    }else{
+
+      inventory = [];
+
+      render();
+
+    }
 
   }catch(e){
 
     console.log(e);
+
+    inventory = [];
+
+    render();
 
   }
 
@@ -669,7 +655,6 @@ async function saveItemToCloud(item){
 
         headers:{
           'apikey':SUPABASE_KEY,
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Content-Type':'application/json',
           'Prefer':'return=minimal'
         },
@@ -700,9 +685,7 @@ async function saveItemToCloud(item){
 
 }
 
-/* =========================
-   RENDER
-========================= */
+/* ================= RENDER ================= */
 
 function render(){
 
@@ -806,6 +789,8 @@ function render(){
     const qrElement =
       document.getElementById(`qr-${index}`);
 
+    qrElement.innerHTML = '';
+
     new QRCode(qrElement,{
 
       text:qrData,
@@ -828,9 +813,7 @@ function render(){
 
 }
 
-/* =========================
-   ADD ITEM
-========================= */
+/* ================= ADD ================= */
 
 async function addItem(){
 
@@ -881,9 +864,7 @@ async function addItem(){
 
 }
 
-/* =========================
-   QR SCANNER
-========================= */
+/* ================= QR ================= */
 
 function startScanner(){
 
@@ -966,9 +947,7 @@ function startScanner(){
 
         console.log(e);
 
-        alert(
-          'Ошибка QR'
-        );
+        alert('Ошибка QR');
 
         scanner.stop();
 
@@ -980,9 +959,7 @@ function startScanner(){
 
 }
 
-/* =========================
-   SHARE QR
-========================= */
+/* ================= SHARE ================= */
 
 async function shareQR(index){
 
@@ -995,8 +972,6 @@ async function shareQR(index){
     container.querySelector('img');
 
   if(!img){
-
-    alert('QR не найден');
 
     return;
   }
@@ -1051,9 +1026,7 @@ async function shareQR(index){
 
 }
 
-/* =========================
-   EDIT
-========================= */
+/* ================= EDIT ================= */
 
 function editItem(index){
 
@@ -1110,9 +1083,7 @@ function editItem(index){
 
 }
 
-/* =========================
-   DELETE
-========================= */
+/* ================= DELETE ================= */
 
 function deleteItem(index){
 
@@ -1126,9 +1097,7 @@ function deleteItem(index){
 
 }
 
-/* =========================
-   EXCEL
-========================= */
+/* ================= EXCEL ================= */
 
 function exportExcel(){
 
@@ -1187,11 +1156,9 @@ function exportExcel(){
 
 }
 
-/* =========================
-   AUTO LOGIN
-========================= */
+/* ================= AUTO LOGIN ================= */
 
-window.onload = async()=>{
+window.onload = ()=>{
 
   const savedUser =
     localStorage.getItem(
@@ -1203,12 +1170,6 @@ window.onload = async()=>{
     currentUser =
       JSON.parse(savedUser);
 
-    showLoader();
-
-    await loadInventory();
-
-    hideLoader();
-
     document
     .getElementById('authScreen')
     .classList
@@ -1218,6 +1179,8 @@ window.onload = async()=>{
     .getElementById('appScreen')
     .classList
     .remove('hidden');
+
+    loadInventory();
 
   }
 
