@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Складской учет PRO (QR + Excel)</title>
+  <title>Складской учет PRO (QR + Excel + Users)</title>
 
   <!-- QR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -14,6 +15,9 @@
 
   <!-- Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
 
@@ -161,6 +165,20 @@
       color:#2c3e50;
     }
 
+    #authBox{
+      max-width:450px;
+      margin:20px auto;
+      background:white;
+      padding:20px;
+      border-radius:15px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    #userPanel{
+      text-align:center;
+      margin-bottom:15px;
+    }
+
     @media(max-width:768px){
 
       table{
@@ -178,9 +196,58 @@
     }
 
   </style>
+
 </head>
 
 <body>
+
+<div id="authBox">
+
+  <h2 style="text-align:center;">🔐 Вход в склад</h2>
+
+  <input
+    type="email"
+    id="email"
+    placeholder="Почта"
+    style="width:100%;margin-bottom:10px;">
+
+  <input
+    type="password"
+    id="password"
+    placeholder="Пароль"
+    style="width:100%;margin-bottom:10px;">
+
+  <button
+    onclick="signUp()"
+    style="width:100%;background:#2ecc71;margin-bottom:10px;">
+
+    ➕ Регистрация
+
+  </button>
+
+  <button
+    onclick="signIn()"
+    style="width:100%;background:#3498db;">
+
+    🔓 Войти
+
+  </button>
+
+</div>
+
+<div id="userPanel" style="display:none;">
+
+  <div id="userEmail"></div>
+
+  <button
+    onclick="logout()"
+    style="background:#e74c3c;margin-top:10px;">
+
+    🚪 Выйти
+
+  </button>
+
+</div>
 
 <div class="container">
 
@@ -188,48 +255,24 @@
 
   <div class="form">
 
-    <input
-      type="text"
-      id="name"
-      placeholder="Название">
+    <input type="text" id="name" placeholder="Название">
 
-    <input
-      type="number"
-      id="qty"
-      placeholder="Остаток">
+    <input type="number" id="qty" placeholder="Остаток">
 
-    <input
-      type="text"
-      id="unit"
-      placeholder="Ед. (шт/кг)">
+    <input type="text" id="unit" placeholder="Ед. (шт/кг)">
 
-    <input
-      type="number"
-      id="price"
-      placeholder="Цена ₴">
+    <input type="number" id="price" placeholder="Цена ₴">
 
-    <button
-      class="btn-add"
-      onclick="addItem()">
-
+    <button class="btn-add" onclick="addItem()">
       ➕ Добавить
-
     </button>
 
-    <button
-      class="btn-scan"
-      onclick="startScanner()">
-
+    <button class="btn-scan" onclick="startScanner()">
       📷 Сканировать QR
-
     </button>
 
-    <button
-      class="btn-excel"
-      onclick="exportExcel()">
-
+    <button class="btn-excel" onclick="exportExcel()">
       📊 Excel
-
     </button>
 
   </div>
@@ -243,15 +286,10 @@
       <tr>
 
         <th>Товар</th>
-
         <th>Остаток</th>
-
         <th>Цена</th>
-
         <th>Сумма</th>
-
         <th>QR-Код</th>
-
         <th>Действия</th>
 
       </tr>
@@ -273,13 +311,24 @@
 
 <script>
 
-let inventory =
-  JSON.parse(
-    localStorage.getItem('my_inventory')
-  ) || [];
+const SUPABASE_URL =
+'https://zwoaxfrijvtfclzdodpf.supabase.co';
 
-// Память последнего QR
-let lastQrState = {};
+const SUPABASE_KEY =
+'ТВОЙ_ANON_KEY';
+
+const supabase =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let inventory =
+JSON.parse(
+  localStorage.getItem('my_inventory')
+) || [];
+
+let lastScannedQR = '';
 
 function save(){
 
@@ -292,10 +341,10 @@ function save(){
 function render(){
 
   const tbody =
-    document.getElementById('tableBody');
+  document.getElementById('tableBody');
 
   const grandTotal =
-    document.getElementById('grandTotal');
+  document.getElementById('grandTotal');
 
   tbody.innerHTML = '';
 
@@ -304,9 +353,10 @@ function render(){
   inventory.forEach((item,index)=>{
 
     const row =
-      document.createElement('tr');
+    document.createElement('tr');
 
-    const qrData = encodeURIComponent(
+    const qrData =
+    encodeURIComponent(
       JSON.stringify({
         name:item.name,
         qty:Number(item.qty),
@@ -316,8 +366,8 @@ function render(){
     );
 
     const itemSum =
-      Number(item.qty) *
-      Number(item.price);
+    Number(item.qty) *
+    Number(item.price);
 
     totalSum += itemSum;
 
@@ -383,7 +433,7 @@ function render(){
     tbody.appendChild(row);
 
     const qrElement =
-      document.getElementById(`qr-${index}`);
+    document.getElementById(`qr-${index}`);
 
     qrElement.innerHTML = '';
 
@@ -406,30 +456,30 @@ function render(){
   });
 
   grandTotal.textContent =
-    totalSum.toFixed(2);
+  totalSum.toFixed(2);
 }
 
 function addItem(){
 
   const name =
-    document.getElementById('name')
-    .value.trim();
+  document.getElementById('name')
+  .value.trim();
 
   const qty =
-    Number(
-      document.getElementById('qty')
-      .value
-    );
+  Number(
+    document.getElementById('qty')
+    .value
+  );
 
   const unit =
-    document.getElementById('unit')
-    .value.trim() || 'шт';
+  document.getElementById('unit')
+  .value.trim() || 'шт';
 
   const price =
-    Number(
-      document.getElementById('price')
-      .value
-    ) || 0;
+  Number(
+    document.getElementById('price')
+    .value
+  ) || 0;
 
   if(!name || isNaN(qty)){
 
@@ -464,7 +514,7 @@ function addItem(){
 function startScanner(){
 
   const scanner =
-    new Html5Qrcode('reader');
+  new Html5Qrcode('reader');
 
   scanner.start(
 
@@ -477,95 +527,50 @@ function startScanner(){
       qrbox:{
         width:300,
         height:300
-      },
-
-      aspectRatio:1.0,
-
-      disableFlip:false
+      }
 
     },
 
     (text)=>{
 
+      if(text === lastScannedQR){
+        return;
+      }
+
+      lastScannedQR = text;
+
       try{
 
         const decoded =
-          decodeURIComponent(text);
+        decodeURIComponent(text);
 
         const data =
-          JSON.parse(decoded);
-
-        const name =
-          data.name;
-
-        const qty =
-          Number(data.qty);
-
-        const unit =
-          data.unit;
-
-        const price =
-          Number(data.price);
-
-        if(!name){
-
-          alert(
-            "❌ Неверный QR"
-          );
-
-          scanner.stop();
-
-          return;
-        }
-
-        // СОСТОЯНИЕ QR
-        const currentState =
-          JSON.stringify({
-            qty,
-            unit,
-            price
-          });
-
-        // ЕСЛИ ИЗМЕНЕНИЙ НЕТ
-        if(
-          lastQrState[name] ===
-          currentState
-        ){
-
-          alert(
-            "⚠️ Изменений нет"
-          );
-
-          scanner.stop();
-
-          return;
-        }
-
-        // СОХРАНЯЕМ СОСТОЯНИЕ
-        lastQrState[name] =
-          currentState;
+        JSON.parse(decoded);
 
         const existing =
-          inventory.find(
-            i=>i.name===name
-          );
+        inventory.find(
+          i=>i.name===data.name
+        );
 
         if(existing){
 
-          existing.qty = qty;
+          existing.qty =
+          Number(data.qty);
 
-          existing.unit = unit;
+          existing.price =
+          Number(data.price);
 
-          existing.price = price;
+          existing.unit =
+          data.unit;
 
         }else{
 
           inventory.push({
 
-            name,
-            qty,
-            unit,
-            price
+            name:data.name,
+            qty:Number(data.qty),
+            unit:data.unit,
+            price:Number(data.price)
 
           });
         }
@@ -574,40 +579,31 @@ function startScanner(){
 
         render();
 
-        scanner.stop();
-
         alert(
-          "✅ QR обновлён"
+          "✅ QR обновлен"
         );
 
       }catch(e){
 
         alert(
-          "❌ Ошибка QR-кода"
+          "❌ Ошибка QR"
         );
-
-        scanner.stop();
       }
 
     }
 
-  ).catch(()=>{
-
-    alert(
-      "Ошибка камеры"
-    );
-  });
+  );
 }
 
 async function shareQR(index){
 
   const container =
-    document.getElementById(
-      `qr-${index}`
-    );
+  document.getElementById(
+    `qr-${index}`
+  );
 
   const img =
-    container.querySelector('img');
+  container.querySelector('img');
 
   if(!img){
 
@@ -621,22 +617,22 @@ async function shareQR(index){
   try{
 
     const response =
-      await fetch(img.src);
+    await fetch(img.src);
 
     const blob =
-      await response.blob();
+    await response.blob();
 
     const file =
-      new File(
+    new File(
 
-        [blob],
+      [blob],
 
-        `qr-${inventory[index].name}.png`,
+      `qr-${inventory[index].name}.png`,
 
-        {
-          type:'image/png'
-        }
-      );
+      {
+        type:'image/png'
+      }
+    );
 
     if(
       navigator.canShare &&
@@ -648,26 +644,15 @@ async function shareQR(index){
       await navigator.share({
 
         title:
-          inventory[index].name,
+        inventory[index].name,
 
         text:
-          `QR товара: ${inventory[index].name}`,
+        `QR товара: ${inventory[index].name}`,
 
         files:[file]
 
       });
 
-    }else{
-
-      const link =
-        document.createElement('a');
-
-      link.href = img.src;
-
-      link.download =
-        `qr-${inventory[index].name}.png`;
-
-      link.click();
     }
 
   }catch(e){
@@ -683,34 +668,34 @@ function editItem(index){
   const item = inventory[index];
 
   const newName =
-    prompt(
-      "Название:",
-      item.name
-    );
+  prompt(
+    "Название:",
+    item.name
+  );
 
   if(newName === null) return;
 
   const newQty =
-    prompt(
-      "Остаток:",
-      item.qty
-    );
+  prompt(
+    "Остаток:",
+    item.qty
+  );
 
   if(newQty === null) return;
 
   const newUnit =
-    prompt(
-      "Единица:",
-      item.unit
-    );
+  prompt(
+    "Единица:",
+    item.unit
+  );
 
   if(newUnit === null) return;
 
   const newPrice =
-    prompt(
-      "Цена:",
-      item.price
-    );
+  prompt(
+    "Цена:",
+    item.price
+  );
 
   if(newPrice === null) return;
 
@@ -752,33 +737,33 @@ function exportExcel(){
   }
 
   const excelData =
-    inventory.map(item=>({
+  inventory.map(item=>({
 
-      "Товар":
-      item.name,
+    "Товар":
+    item.name,
 
-      "Остаток":
-      item.qty,
+    "Остаток":
+    item.qty,
 
-      "Единица":
-      item.unit,
+    "Единица":
+    item.unit,
 
-      "Цена":
-      Number(item.price),
+    "Цена":
+    Number(item.price),
 
-      "Сумма":
-      Number(item.qty) *
-      Number(item.price)
+    "Сумма":
+    Number(item.qty) *
+    Number(item.price)
 
-    }));
+  }));
 
   const worksheet =
-    XLSX.utils.json_to_sheet(
-      excelData
-    );
+  XLSX.utils.json_to_sheet(
+    excelData
+  );
 
   const workbook =
-    XLSX.utils.book_new();
+  XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(
 
@@ -798,6 +783,89 @@ function exportExcel(){
 
   );
 }
+
+async function signUp(){
+
+  const email =
+  document.getElementById('email').value;
+
+  const password =
+  document.getElementById('password').value;
+
+  const { error } =
+  await supabase.auth.signUp({
+
+    email,
+    password
+
+  });
+
+  if(error){
+
+    alert(error.message);
+
+  }else{
+
+    alert('✅ Аккаунт создан');
+
+  }
+}
+
+async function signIn(){
+
+  const email =
+  document.getElementById('email').value;
+
+  const password =
+  document.getElementById('password').value;
+
+  const { error } =
+  await supabase.auth.signInWithPassword({
+
+    email,
+    password
+
+  });
+
+  if(error){
+
+    alert(error.message);
+
+  }else{
+
+    checkUser();
+  }
+}
+
+async function logout(){
+
+  await supabase.auth.signOut();
+
+  location.reload();
+}
+
+async function checkUser(){
+
+  const {
+    data:{ user }
+  } =
+  await supabase.auth.getUser();
+
+  if(user){
+
+    document.getElementById('authBox')
+    .style.display='none';
+
+    document.getElementById('userPanel')
+    .style.display='block';
+
+    document.getElementById('userEmail')
+    .innerText =
+    '👤 ' + user.email;
+  }
+}
+
+checkUser();
 
 render();
 
