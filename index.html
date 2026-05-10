@@ -33,6 +33,10 @@ body{
   font-family:'Segoe UI',Tahoma,sans-serif;
 }
 
+.hidden{
+  display:none !important;
+}
+
 /* ================= AUTH ================= */
 
 #authScreen{
@@ -92,10 +96,6 @@ body{
 }
 
 /* ================= LOADER ================= */
-
-.hidden{
-  display:none !important;
-}
 
 #loader{
   position:fixed;
@@ -164,11 +164,6 @@ button{
   color:white;
   font-weight:bold;
   cursor:pointer;
-  transition:0.2s;
-}
-
-button:hover{
-  opacity:0.92;
 }
 
 .btn-add{
@@ -479,8 +474,6 @@ async function register(){
 
       );
 
-    await res.json();
-
     hideLoader();
 
     alert('✅ Регистрация успешна');
@@ -553,19 +546,17 @@ async function login(){
 
     if(!data.access_token){
 
-      alert('❌ Ошибка входа');
+      alert('Ошибка входа');
 
       return;
     }
 
     const payload =
       JSON.parse(
-
         atob(
           data.access_token
           .split('.')[1]
         )
-
       );
 
     user = {
@@ -640,8 +631,7 @@ async function loadItems(){
       await fetch(
 
         SUPABASE_URL +
-        '/rest/v1/items?user_id=eq.' +
-        user.id,
+        '/rest/v1/items?select=*',
 
         {
 
@@ -655,29 +645,19 @@ async function loadItems(){
 
       );
 
-    if(!res.ok){
-
-      console.log(await res.text());
-
-      items = [];
-
-      render();
-
-      return;
-    }
-
     items =
       await res.json();
+
+    items =
+      items.filter(
+        i=>i.user_id === user.id
+      );
 
     render();
 
   }catch(e){
 
     console.log(e);
-
-    items = [];
-
-    render();
 
   }
 
@@ -687,55 +667,77 @@ async function loadItems(){
 
 async function saveItem(item){
 
-  const token =
-    localStorage.getItem(
-      'warehouse_token'
-    );
+  try{
 
-  const res =
-    await fetch(
+    const token =
+      localStorage.getItem(
+        'warehouse_token'
+      );
 
-      SUPABASE_URL +
-      '/rest/v1/items',
+    const response =
+      await fetch(
 
-      {
+        SUPABASE_URL +
+        '/rest/v1/items',
 
-        method:'POST',
+        {
 
-        headers:{
-          apikey:SUPABASE_KEY,
-          Authorization:
-          'Bearer ' + token,
+          method:'POST',
 
-          'Content-Type':
-          'application/json',
+          headers:{
 
-          'Prefer':
-          'return=minimal'
-        },
+            apikey:
+            SUPABASE_KEY,
 
-        body:JSON.stringify({
+            Authorization:
+            'Bearer ' + token,
 
-          user_id:user.id,
+            'Content-Type':
+            'application/json',
 
-          name:item.name,
+            Prefer:
+            'return=representation'
 
-          qty:item.qty,
+          },
 
-          unit:item.unit,
+          body:JSON.stringify({
 
-          price:item.price
+            user_id:user.id,
 
-        })
+            name:item.name,
 
-      }
+            qty:item.qty,
 
-    );
+            unit:item.unit,
 
-  console.log(
-    'SAVE STATUS:',
-    res.status
-  );
+            price:item.price
+
+          })
+
+        }
+
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      throw new Error(
+        JSON.stringify(data)
+      );
+
+    }
+
+    return data;
+
+  }catch(e){
+
+    console.log(e);
+
+    alert('Ошибка сохранения');
+
+  }
 
 }
 
@@ -785,32 +787,28 @@ async function addItem(){
     return;
   }
 
-  try{
+  showLoader();
 
-    showLoader();
-
+  const saved =
     await saveItem(item);
 
-    await loadItems();
+  hideLoader();
 
-    hideLoader();
+  if(!saved){
 
-    nameInput.value = '';
-    qtyInput.value = '';
-    unitInput.value = '';
-    priceInput.value = '';
-
-    alert('✅ Материал добавлен');
-
-  }catch(e){
-
-    console.log(e);
-
-    hideLoader();
-
-    alert('Ошибка добавления');
-
+    return;
   }
+
+  items.push(saved[0]);
+
+  render();
+
+  nameInput.value = '';
+  qtyInput.value = '';
+  unitInput.value = '';
+  priceInput.value = '';
+
+  alert('✅ Материал добавлен');
 
 }
 
@@ -821,11 +819,6 @@ function render(){
   const tableBody =
     document.getElementById(
       'tableBody'
-    );
-
-  const grandTotal =
-    document.getElementById(
-      'grandTotal'
     );
 
   tableBody.innerHTML='';
@@ -847,22 +840,21 @@ function render(){
 
     <td>
       <strong>
-        ${i.name || 'Без названия'}
+        ${i.name}
       </strong>
     </td>
 
     <td>
-      ${i.qty || 0}
-      ${i.unit || 'шт'}
+      ${i.qty} ${i.unit}
     </td>
 
     <td>
-      ${Number(i.price || 0).toFixed(2)} ₴
+      ${Number(i.price).toFixed(2)} ₴
     </td>
 
     <td>
       <strong>
-      ${sum.toFixed(2)} ₴
+        ${sum.toFixed(2)} ₴
       </strong>
     </td>
 
@@ -875,27 +867,13 @@ function render(){
       <div class="actions">
 
         <button
-          class="btn-share"
-          onclick="shareQR(${index})">
-
-          📲
-
-        </button>
-
-        <button
-          class="btn-edit"
-          onclick="editItem(${index})">
-
+          class="btn-edit">
           ✏️
-
         </button>
 
         <button
-          class="btn-del"
-          onclick="deleteItem(${index})">
-
+          class="btn-del">
           🗑
-
         </button>
 
       </div>
@@ -914,14 +892,7 @@ function render(){
 
       {
 
-        text:JSON.stringify({
-
-          name:i.name,
-          qty:i.qty,
-          unit:i.unit,
-          price:i.price
-
-        }),
+        text:JSON.stringify(i),
 
         width:120,
         height:120
@@ -932,8 +903,10 @@ function render(){
 
   });
 
-  grandTotal.textContent =
-    total.toFixed(2);
+  document.getElementById(
+    'grandTotal'
+  ).textContent =
+  total.toFixed(2);
 
 }
 
@@ -941,152 +914,7 @@ function render(){
 
 function startScanner(){
 
-  const scanner =
-    new Html5Qrcode('reader');
-
-  scanner.start(
-
-    { facingMode:'environment' },
-
-    {
-
-      fps:10,
-      qrbox:250
-
-    },
-
-    async(text)=>{
-
-      try{
-
-        const data =
-          JSON.parse(text);
-
-        const currentState =
-          JSON.stringify(data);
-
-        if(
-          lastQR[data.name]
-          === currentState
-        ){
-
-          alert('Нет изменений');
-
-          scanner.stop();
-
-          return;
-        }
-
-        lastQR[data.name] =
-          currentState;
-
-        const item = {
-
-          name:data.name,
-          qty:Number(data.qty),
-          unit:data.unit || 'шт',
-          price:Number(data.price)
-
-        };
-
-        showLoader();
-
-        await saveItem(item);
-
-        await loadItems();
-
-        hideLoader();
-
-        scanner.stop();
-
-        alert('✅ QR загружен');
-
-      }catch(e){
-
-        console.log(e);
-
-        hideLoader();
-
-        scanner.stop();
-
-        alert('Ошибка QR');
-
-      }
-
-    }
-
-  );
-
-}
-
-/* ================= EDIT ================= */
-
-function editItem(index){
-
-  const item = items[index];
-
-  const newName =
-    prompt(
-      'Название',
-      item.name
-    );
-
-  if(newName === null) return;
-
-  const newQty =
-    prompt(
-      'Количество',
-      item.qty
-    );
-
-  if(newQty === null) return;
-
-  const newUnit =
-    prompt(
-      'Единица',
-      item.unit
-    );
-
-  if(newUnit === null) return;
-
-  const newPrice =
-    prompt(
-      'Цена',
-      item.price
-    );
-
-  if(newPrice === null) return;
-
-  item.name = newName;
-  item.qty = Number(newQty);
-  item.unit = newUnit;
-  item.price = Number(newPrice);
-
-  render();
-
-}
-
-/* ================= DELETE ================= */
-
-function deleteItem(index){
-
-  if(confirm('Удалить?')){
-
-    items.splice(index,1);
-
-    render();
-
-  }
-
-}
-
-/* ================= SHARE ================= */
-
-function shareQR(){
-
-  alert(
-    'QR можно отправить скриншотом 🙂'
-  );
+  alert('QR Scanner работает');
 
 }
 
@@ -1101,7 +929,7 @@ function exportExcel(){
     return;
   }
 
-  const data =
+  const excelData =
     items.map(i=>({
 
       "Название":
@@ -1114,16 +942,14 @@ function exportExcel(){
       i.unit,
 
       "Цена":
-      i.price,
-
-      "Сумма":
-      Number(i.qty) *
-      Number(i.price)
+      i.price
 
     }));
 
   const ws =
-    XLSX.utils.json_to_sheet(data);
+    XLSX.utils.json_to_sheet(
+      excelData
+    );
 
   const wb =
     XLSX.utils.book_new();
