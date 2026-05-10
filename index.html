@@ -3,18 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Склад Cloud</title>
+<title>Склад PRO Cloud</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f0f2f5}
 
-.hidden{display:none!important}
+body{
+  margin:0;
+  font-family:Segoe UI;
+  background:#eef2f7;
+}
 
+/* AUTH */
 .auth{
   height:100vh;
   display:flex;
@@ -26,57 +29,133 @@ body{margin:0;font-family:Arial;background:#f0f2f5}
   background:white;
   padding:25px;
   border-radius:15px;
-  width:300px;
+  width:320px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
 input{
   width:100%;
-  margin:5px 0;
-  padding:10px;
+  padding:12px;
+  margin:6px 0;
+  border:1px solid #ddd;
+  border-radius:10px;
 }
 
+/* BUTTONS */
 button{
   width:100%;
-  padding:10px;
-  margin-top:5px;
-  background:#3498db;
-  color:white;
+  padding:12px;
+  margin-top:8px;
   border:none;
+  border-radius:10px;
+  color:white;
+  font-weight:bold;
   cursor:pointer;
 }
 
-.container{
-  max-width:1200px;
-  margin:auto;
-  background:white;
-  padding:15px;
+.login{background:#3498db}
+.register{background:#2ecc71}
+
+/* LOADER */
+.loader{
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,0.8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
+.circle{
+  width:60px;
+  height:60px;
+  border:6px solid #ddd;
+  border-top:6px solid #3498db;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  100%{transform:rotate(360deg);}
+}
+
+/* APP */
+.container{
+  max-width:1100px;
+  margin:20px auto;
+  background:white;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.1);
+}
+
+.form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;
+}
+
+.add{background:#2ecc71}
+.scan{background:#3498db}
+.excel{background:#27ae60}
+.logout{background:#2c3e50}
+
+/* TABLE */
 table{
   width:100%;
+  margin-top:15px;
   border-collapse:collapse;
 }
 
-td,th{
-  border:1px solid #ddd;
-  padding:8px;
-  text-align:center;
+th{
+  background:#34495e;
+  color:white;
+  padding:10px;
 }
-</style>
 
+td{
+  text-align:center;
+  padding:10px;
+  border-bottom:1px solid #eee;
+}
+
+/* QR */
+.qr img{
+  width:90px;
+}
+
+/* ACTIONS */
+.actions button{
+  font-size:12px;
+  padding:6px;
+}
+
+.edit{background:#f39c12}
+.del{background:#e74c3c}
+.share{background:#1da1f2}
+
+.hidden{display:none!important}
+
+</style>
 </head>
 
 <body>
 
+<!-- LOADER -->
+<div id="loader" class="loader hidden">
+  <div class="circle"></div>
+</div>
+
 <!-- AUTH -->
 <div id="auth" class="auth">
   <div class="card">
-    <h3>Вход</h3>
-    <input id="email" placeholder="email">
-    <input id="password" type="password" placeholder="password">
+    <h3>📦 Склад PRO</h3>
 
-    <button onclick="login()">Войти</button>
-    <button onclick="register()">Регистрация</button>
+    <input id="email" placeholder="Почта">
+    <input id="password" type="password" placeholder="Пароль">
+
+    <button class="login" onclick="login()">Войти</button>
+    <button class="register" onclick="register()">Регистрация</button>
   </div>
 </div>
 
@@ -85,61 +164,65 @@ td,th{
 
 <div class="container">
 
-<h2>📦 Склад</h2>
+<button class="logout" onclick="logout()">Выйти</button>
 
-<button onclick="logout()">Выйти</button>
+<h2>📦 Ваш склад</h2>
 
-<hr>
+<div class="form">
 
 <input id="name" placeholder="Название">
-<input id="qty" type="number" placeholder="Количество">
+<input id="qty" type="number" placeholder="Остаток">
 <input id="unit" placeholder="Ед">
 <input id="price" type="number" placeholder="Цена">
 
-<button onclick="addItem()">Добавить в QR и Excel</button>
+<button class="add" onclick="addItem()">➕ Добавить</button>
+<button class="scan" onclick="startScan()">📷 QR</button>
+<button class="excel" onclick="exportExcel()">📊 Excel</button>
+
+</div>
+
+<div id="reader"></div>
 
 <table>
 <thead>
 <tr>
 <th>Товар</th>
-<th>Кол-во</th>
+<th>Остаток</th>
 <th>Цена</th>
 <th>Сумма</th>
 <th>QR</th>
+<th>Действия</th>
 </tr>
 </thead>
-<tbody id="list"></tbody>
+
+<tbody id="table"></tbody>
 </table>
+
+<div class="total">
+💰 Итого: <span id="total">0</span> ₴
+</div>
 
 </div>
 </div>
 
 <script>
 
+/* SUPABASE */
 const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+const SUPABASE_KEY = "ВСТАВЬ_ANON_KEY";
 
 let user = null;
 let items = [];
+let lastQR = {};
 
-/* ===== UI ===== */
-
-function showAuth(){
-  document.getElementById("auth").classList.remove("hidden");
-  document.getElementById("app").classList.add("hidden");
+function showLoader(v){
+  document.getElementById('loader').classList.toggle('hidden', !v);
 }
 
-function showApp(){
-  document.getElementById("auth").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-}
-
-/* ===== AUTH ===== */
-
+/* AUTH */
 async function register(){
 
-  const email = emailInput().value;
-  const password = passInput().value;
+  showLoader(true);
 
   const res = await fetch(SUPABASE_URL+"/auth/v1/signup",{
     method:"POST",
@@ -147,16 +230,20 @@ async function register(){
       apikey:SUPABASE_KEY,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({email,password})
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
   });
 
-  alert("Проверь почту для входа");
+  showLoader(false);
+
+  alert("Регистрация отправлена");
 }
 
 async function login(){
 
-  const email = emailInput().value;
-  const password = passInput().value;
+  showLoader(true);
 
   const res = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
     method:"POST",
@@ -164,10 +251,15 @@ async function login(){
       apikey:SUPABASE_KEY,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({email,password})
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
   });
 
   const data = await res.json();
+
+  showLoader(false);
 
   if(!data.access_token){
     alert("Ошибка входа");
@@ -175,40 +267,30 @@ async function login(){
   }
 
   user = data.user;
-  showApp();
+
+  localStorage.setItem("user",JSON.stringify(user));
+
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
   loadItems();
 }
 
-/* ===== LOAD ===== */
-
+/* LOAD */
 async function loadItems(){
 
   const res = await fetch(
     SUPABASE_URL + "/rest/v1/items?user_id=eq."+user.id,
-    {
-      headers:{
-        apikey:SUPABASE_KEY
-      }
-    }
+    {headers:{apikey:SUPABASE_KEY}}
   );
 
   items = await res.json();
+
   render();
 }
 
-/* ===== ADD ===== */
-
-async function addItem(){
-
-  const item = {
-    user_id:user.id,
-    name:val("name"),
-    qty:Number(val("qty")),
-    unit:val("unit"),
-    price:Number(val("price"))
-  };
-
-  items.push(item);
+/* SAVE */
+async function saveItem(item){
 
   await fetch(SUPABASE_URL+"/rest/v1/items",{
     method:"POST",
@@ -216,62 +298,118 @@ async function addItem(){
       apikey:SUPABASE_KEY,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify(item)
+    body:JSON.stringify({
+      user_id:user.id,
+      ...item
+    })
   });
+
+}
+
+/* ADD */
+async function addItem(){
+
+  const item = {
+    name:name.value,
+    qty:Number(qty.value),
+    unit:unit.value,
+    price:Number(price.value)
+  };
+
+  items.push(item);
+
+  await saveItem(item);
 
   render();
 }
 
-/* ===== RENDER ===== */
-
+/* RENDER */
 function render(){
 
-  const list = document.getElementById("list");
-  list.innerHTML = "";
+  table.innerHTML = "";
 
-  items.forEach(i=>{
+  let sum = 0;
 
-    const tr = document.createElement("tr");
+  items.forEach((i,idx)=>{
 
-    tr.innerHTML = `
-      <td>${i.name}</td>
-      <td>${i.qty} ${i.unit}</td>
-      <td>${i.price}</td>
-      <td>${i.qty*i.price}</td>
-      <td><div id="q${i.name}"></div></td>
-    `;
+    sum += i.qty*i.price;
 
-    list.appendChild(tr);
+    const row = document.createElement("tr");
 
-    new QRCode(document.getElementById("q"+i.name),{
-      text:JSON.stringify(i),
-      width:80,
-      height:80
+    const qr = encodeURIComponent(JSON.stringify(i));
+
+    row.innerHTML = `
+    <td>${i.name}</td>
+    <td>${i.qty} ${i.unit}</td>
+    <td>${i.price}</td>
+    <td>${i.qty*i.price}</td>
+    <td class="qr"><div id="qr${idx}"></div></td>
+    <td>
+      <button class="edit">✏️</button>
+      <button class="del">🗑</button>
+    </td>`;
+
+    table.appendChild(row);
+
+    new QRCode(document.getElementById("qr"+idx),{
+      text:qr,
+      width:90,
+      height:90
     });
 
   });
+
+  total.innerText = sum;
 }
 
-/* ===== HELP ===== */
+/* SCANNER */
+function startScan(){
 
-function val(id){
-  return document.getElementById(id).value;
+  const scan = new Html5Qrcode("reader");
+
+  scan.start(
+    {facingMode:"environment"},
+    {fps:10,qrbox:250},
+    (text)=>{
+
+      const data = JSON.parse(decodeURIComponent(text));
+
+      if(lastQR[data.name] === text){
+        alert("Нет изменений");
+        scan.stop();
+        return;
+      }
+
+      lastQR[data.name] = text;
+
+      items.push(data);
+
+      render();
+
+      scan.stop();
+
+    }
+  );
 }
 
-function emailInput(){
-  return document.getElementById("email");
-}
+/* INIT */
+window.onload = ()=>{
 
-function passInput(){
-  return document.getElementById("password");
-}
+  const saved = localStorage.getItem("user");
+
+  if(saved){
+    user = JSON.parse(saved);
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadItems();
+  }
+
+};
 
 function logout(){
-  user=null;
-  showAuth();
+  localStorage.removeItem("user");
+  location.reload();
 }
-
-showAuth();
 
 </script>
 
