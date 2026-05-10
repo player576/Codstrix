@@ -1,207 +1,92 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Склад PRO FULL CLOUD</title>
 
-<title>Складской учет PRO Cloud</title>
-
-<!-- QR -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<!-- QR Scanner -->
 <script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
+body{margin:0;font-family:Segoe UI;background:#eef2f7}
 
-:root{
-  --bg:#f0f2f5;
-  --card:#ffffff;
-  --primary:#3498db;
-  --success:#2ecc71;
-  --danger:#e74c3c;
-  --orange:#f39c12;
-}
+.hidden{display:none}
 
-body{
-  margin:0;
-  padding:0;
-  background:var(--bg);
-  font-family:'Segoe UI',Tahoma,sans-serif;
-}
-
-.hidden{
-  display:none !important;
-}
-
-/* ================= AUTH ================= */
-
-.auth-screen{
-  width:100%;
-  min-height:100vh;
+/* AUTH */
+.auth{
+  height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  padding:20px;
-  box-sizing:border-box;
 }
 
-.auth-card{
-  width:100%;
-  max-width:430px;
-  background:white;
-  border-radius:20px;
-  padding:30px;
-  box-shadow:0 4px 25px rgba(0,0,0,0.12);
-}
-
-.auth-title{
-  text-align:center;
-  font-size:30px;
-  margin-bottom:25px;
-  color:#2c3e50;
-  font-weight:bold;
-}
-
-.auth-input{
-  width:100%;
-  box-sizing:border-box;
-  padding:14px;
-  margin-bottom:15px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-size:15px;
-}
-
-.auth-btn{
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  margin-bottom:10px;
-  font-size:15px;
-}
-
-.login-btn{
-  background:#3498db;
-}
-
-.register-btn{
-  background:#2ecc71;
-}
-
-/* ================= LOADER ================= */
-
-.loading-screen{
-  position:fixed;
-  inset:0;
-  background:rgba(255,255,255,0.9);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:9999;
-}
-
-.loader{
-  width:70px;
-  height:70px;
-  border:8px solid #eee;
-  border-top:8px solid #3498db;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-
-@keyframes spin{
-  100%{
-    transform:rotate(360deg);
-  }
-}
-
-/* ================= APP ================= */
-
-.container{
-  max-width:1300px;
-  margin:auto;
+.card{
+  width:320px;
   background:white;
   padding:20px;
-  border-radius:20px;
-  margin-top:20px;
-  margin-bottom:20px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.1);
-  overflow-x:auto;
-}
-
-h1{
-  text-align:center;
-  color:#2c3e50;
-}
-
-.form{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;
-  margin-bottom:20px;
+  border-radius:15px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
 }
 
 input{
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  outline:none;
+  width:100%;
+  padding:10px;
+  margin:5px 0;
 }
 
 button{
+  width:100%;
+  padding:10px;
+  margin-top:5px;
   border:none;
   border-radius:10px;
-  padding:12px;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.btn-add{
-  background:#2ecc71;
-}
-
-.btn-scan{
   background:#3498db;
+  color:white;
 }
 
-.btn-excel{
-  background:#27ae60;
+/* LOADER */
+.loader{
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,0.8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
-.btn-share{
-  background:#1da1f2;
-  font-size:12px;
+.spin{
+  width:60px;
+  height:60px;
+  border:6px solid #ddd;
+  border-top:6px solid #3498db;
+  border-radius:50%;
+  animation:rot 1s linear infinite;
 }
 
-.btn-edit{
-  background:#f39c12;
-  font-size:12px;
-}
+@keyframes rot{100%{transform:rotate(360deg)}}
 
-.btn-del{
-  background:#e74c3c;
-  font-size:12px;
-}
+/* APP */
+.container{padding:15px}
 
-.btn-logout{
-  background:#2c3e50;
-  margin-bottom:20px;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
 }
 
 table{
   width:100%;
+  margin-top:20px;
+  background:white;
   border-collapse:collapse;
-  min-width:1100px;
+}
+
+th,td{
+  border-bottom:1px solid #eee;
+  padding:10px;
+  text-align:center;
 }
 
 th{
@@ -209,479 +94,170 @@ th{
   color:white;
 }
 
-th,td{
-  padding:12px;
-  border-bottom:1px solid #eee;
-  text-align:center;
+.qr{
+  width:100px;
+  height:100px;
 }
-
-.actions{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-.qr-container{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-
-.qr-container img{
-  width:180px;
-  height:180px;
-  image-rendering:pixelated;
-}
-
-#reader{
-  width:100%;
-  max-width:420px;
-  margin:20px auto;
-  border-radius:15px;
-  overflow:hidden;
-  border:3px solid #3498db;
-}
-
-.total-box{
-  margin-top:20px;
-  text-align:right;
-  font-size:24px;
-  font-weight:bold;
-}
-
 </style>
-
 </head>
+
 <body>
 
-<!-- ================= LOADER ================= -->
-
-<div id="loadingScreen" class="loading-screen hidden">
-
-  <div class="loader"></div>
-
+<!-- LOADER -->
+<div id="loader" class="loader hidden">
+  <div class="spin"></div>
 </div>
 
-<!-- ================= AUTH ================= -->
+<!-- AUTH -->
+<div id="auth" class="auth">
+  <div class="card">
+    <h2>📦 Склад PRO</h2>
 
-<div id="authScreen" class="auth-screen">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Пароль">
 
-  <div class="auth-card">
-
-    <div class="auth-title">
-      📦 Склад Cloud
-    </div>
-
-    <input
-      id="email"
-      class="auth-input"
-      type="email"
-      placeholder="Почта">
-
-    <input
-      id="password"
-      class="auth-input"
-      type="password"
-      placeholder="Пароль">
-
-    <button
-      class="auth-btn login-btn"
-      onclick="login()">
-
-      🔐 Войти
-
-    </button>
-
-    <button
-      class="auth-btn register-btn"
-      onclick="register()">
-
-      📝 Регистрация
-
-    </button>
-
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Регистрация</button>
   </div>
-
 </div>
 
-<!-- ================= APP ================= -->
-
-<div id="appScreen" class="hidden">
-
+<!-- APP -->
+<div id="app" class="hidden">
 <div class="container">
 
-<button
-  class="btn-logout"
-  onclick="logout()">
+<button onclick="logout()">🚪 Выйти</button>
 
-  🚪 Выйти
+<h2>Склад</h2>
 
-</button>
-
-<h1>📦 Складской учет (QR + Excel)</h1>
-
-<div class="form">
-
-<input type="text" id="name" placeholder="Название">
-<input type="number" id="qty" placeholder="Остаток">
-<input type="text" id="unit" placeholder="Ед.">
-<input type="number" id="price" placeholder="Цена">
-
-<button class="btn-add" onclick="addItem()">
-➕ Добавить
-</button>
-
-<button class="btn-scan" onclick="startScanner()">
-📷 QR
-</button>
-
-<button class="btn-excel" onclick="exportExcel()">
-📊 Excel
-</button>
-
+<div class="grid">
+<input id="name" placeholder="Товар">
+<input id="qty" placeholder="Кол-во">
+<input id="unit" placeholder="Ед">
+<input id="price" placeholder="Цена">
 </div>
+
+<button onclick="addItem()">Добавить</button>
+<button onclick="scanQR()">QR скан</button>
+<button onclick="exportExcel()">Excel</button>
 
 <div id="reader"></div>
 
 <table>
-
 <thead>
-
 <tr>
-
 <th>Товар</th>
-<th>Остаток</th>
+<th>Кол-во</th>
 <th>Цена</th>
 <th>Сумма</th>
 <th>QR</th>
-<th>Действия</th>
-
 </tr>
-
 </thead>
 
-<tbody id="tableBody"></tbody>
-
+<tbody id="table"></tbody>
 </table>
 
-<div class="total-box">
-
-💰 Общая сумма:
-<span id="grandTotal">0</span> ₴
-
 </div>
-
-</div>
-
 </div>
 
 <script>
 
-/* ================= SUPABASE ================= */
+const URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
 
-const SUPABASE_URL =
-'https://zwoaxfrijvtfclzdodpf.supabase.co';
+let user = null;
+let items = [];
+let lastScan = {};
 
-const SUPABASE_KEY =
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw';
+function load(on){loader.classList.toggle("hidden",!on)}
 
-/* ================= STATE ================= */
-
-let inventory = [];
-let currentUser = null;
-let lastQrState = {};
-
-/* ================= LOADER ================= */
-
-function showLoader(){
-
-  document
-  .getElementById('loadingScreen')
-  .classList
-  .remove('hidden');
-
+async function api(url, opt={}){
+return fetch(URL+url,{
+...opt,
+headers:{
+apikey:KEY,
+"Content-Type":"application/json"
 }
-
-function hideLoader(){
-
-  document
-  .getElementById('loadingScreen')
-  .classList
-  .add('hidden');
-
+})
 }
 
 /* ================= AUTH ================= */
 
 async function register(){
+load(true);
 
-  const email =
-    document.getElementById('email').value;
+await api("/auth/v1/signup",{
+method:"POST",
+body:JSON.stringify({
+email:email.value,
+password:password.value
+})
+});
 
-  const password =
-    document.getElementById('password').value;
-
-  if(!email || !password){
-
-    alert('Введите данные');
-
-    return;
-  }
-
-  showLoader();
-
-  try{
-
-    const response =
-      await fetch(
-
-        `${SUPABASE_URL}/auth/v1/signup`,
-
-        {
-
-          method:'POST',
-
-          headers:{
-            'apikey':SUPABASE_KEY,
-            'Content-Type':'application/json'
-          },
-
-          body:JSON.stringify({
-            email,
-            password
-          })
-
-        }
-
-      );
-
-    const data =
-      await response.json();
-
-    hideLoader();
-
-    console.log(data);
-
-    if(data.user){
-
-      alert('✅ Регистрация успешна');
-
-    }else{
-
-      alert('Ошибка регистрации');
-
-    }
-
-  }catch(e){
-
-    hideLoader();
-
-    console.log(e);
-
-    alert('Ошибка регистрации');
-
-  }
-
+load(false);
+alert("Готово");
 }
 
 async function login(){
+load(true);
 
-  const email =
-    document.getElementById('email').value;
+let r = await api("/auth/v1/token?grant_type=password",{
+method:"POST",
+body:JSON.stringify({
+email:email.value,
+password:password.value
+})
+});
 
-  const password =
-    document.getElementById('password').value;
+let j = await r.json();
 
-  if(!email || !password){
+load(false);
 
-    alert('Введите данные');
+if(!j.access_token){
+alert("Ошибка входа");
+return;
+}
 
-    return;
-  }
+let p = JSON.parse(atob(j.access_token.split('.')[1]));
 
-  showLoader();
+user = {id:p.sub};
 
-  try{
+auth.classList.add("hidden");
+app.classList.remove("hidden");
 
-    const response =
-      await fetch(
-
-        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-
-        {
-
-          method:'POST',
-
-          headers:{
-            'apikey':SUPABASE_KEY,
-            'Content-Type':'application/json'
-          },
-
-          body:JSON.stringify({
-            email,
-            password
-          })
-
-        }
-
-      );
-
-    const data =
-      await response.json();
-
-    console.log(data);
-
-    if(data.access_token){
-
-      currentUser = data.user;
-
-      localStorage.setItem(
-        'warehouse_user',
-        JSON.stringify(data.user)
-      );
-
-      hideLoader();
-
-      document
-      .getElementById('authScreen')
-      .classList
-      .add('hidden');
-
-      document
-      .getElementById('appScreen')
-      .classList
-      .remove('hidden');
-
-      loadInventory();
-
-    }else{
-
-      hideLoader();
-
-      alert('❌ Неверная почта или пароль');
-
-    }
-
-  }catch(e){
-
-    hideLoader();
-
-    console.log(e);
-
-    alert('Ошибка входа');
-
-  }
-
+loadItems();
 }
 
 function logout(){
-
-  localStorage.removeItem(
-    'warehouse_user'
-  );
-
-  location.reload();
-
+localStorage.clear();
+location.reload();
 }
 
-/* ================= DATABASE ================= */
+/* ================= DATA ================= */
 
-async function loadInventory(){
-
-  if(!currentUser){
-
-    return;
-  }
-
-  try{
-
-    const response =
-      await fetch(
-
-        `${SUPABASE_URL}/rest/v1/items?user_id=eq.${currentUser.id}`,
-
-        {
-
-          headers:{
-            'apikey':SUPABASE_KEY
-          }
-
-        }
-
-      );
-
-    const data =
-      await response.json();
-
-    console.log(data);
-
-    if(Array.isArray(data)){
-
-      inventory = data;
-
-      render();
-
-    }else{
-
-      inventory = [];
-
-      render();
-
-    }
-
-  }catch(e){
-
-    console.log(e);
-
-    inventory = [];
-
-    render();
-
-  }
-
+async function loadItems(){
+let r = await api("/rest/v1/items?user_id=eq."+user.id);
+items = await r.json();
+render();
 }
 
-async function saveItemToCloud(item){
+async function addItem(){
 
-  try{
+let item = {
+name:name.value,
+qty:+qty.value,
+unit:unit.value,
+price:+price.value,
+user_id:user.id
+};
 
-    await fetch(
+items.push(item);
 
-      `${SUPABASE_URL}/rest/v1/items`,
+render();
 
-      {
-
-        method:'POST',
-
-        headers:{
-          'apikey':SUPABASE_KEY,
-          'Content-Type':'application/json',
-          'Prefer':'return=minimal'
-        },
-
-        body:JSON.stringify({
-
-          user_id:currentUser.id,
-
-          name:item.name,
-
-          qty:item.qty,
-
-          unit:item.unit,
-
-          price:item.price
-
-        })
-
-      }
-
-    );
-
-  }catch(e){
-
-    console.log(e);
-
-  }
+await api("/rest/v1/items",{
+method:"POST",
+body:JSON.stringify(item)
+});
 
 }
 
@@ -689,411 +265,65 @@ async function saveItemToCloud(item){
 
 function render(){
 
-  const tbody =
-    document.getElementById('tableBody');
+table.innerHTML="";
 
-  const grandTotal =
-    document.getElementById('grandTotal');
+items.forEach((i,k)=>{
 
-  tbody.innerHTML = '';
+let sum = i.qty*i.price;
 
-  let totalSum = 0;
+let tr = document.createElement("tr");
 
-  inventory.forEach((item,index)=>{
+tr.innerHTML=`
+<td>${i.name}</td>
+<td>${i.qty}</td>
+<td>${i.price}</td>
+<td>${sum}</td>
+<td><div id="q${k}"></div></td>
+`;
 
-    const row =
-      document.createElement('tr');
+table.appendChild(tr);
 
-    const itemSum =
-      Number(item.qty) *
-      Number(item.price);
+new QRCode(q${k},{
+text:JSON.stringify(i),
+width:90,
+height:90
+});
 
-    totalSum += itemSum;
-
-    const qrData =
-      encodeURIComponent(
-
-        JSON.stringify({
-
-          name:item.name,
-          qty:item.qty,
-          unit:item.unit,
-          price:item.price
-
-        })
-
-      );
-
-    row.innerHTML = `
-
-    <td>
-      <strong>${item.name}</strong>
-    </td>
-
-    <td>
-      ${item.qty} ${item.unit}
-    </td>
-
-    <td>
-      ${Number(item.price).toFixed(2)} ₴
-    </td>
-
-    <td>
-      <strong>
-        ${itemSum.toFixed(2)} ₴
-      </strong>
-    </td>
-
-    <td class="qr-container">
-
-      <div id="qr-${index}"></div>
-
-    </td>
-
-    <td>
-
-      <div class="actions">
-
-        <button
-          class="btn-share"
-          onclick="shareQR(${index})">
-
-          📲 Переслать
-
-        </button>
-
-        <button
-          class="btn-edit"
-          onclick="editItem(${index})">
-
-          ✏️ Изменить
-
-        </button>
-
-        <button
-          class="btn-del"
-          onclick="deleteItem(${index})">
-
-          🗑 Удалить
-
-        </button>
-
-      </div>
-
-    </td>
-
-    `;
-
-    tbody.appendChild(row);
-
-    const qrElement =
-      document.getElementById(`qr-${index}`);
-
-    qrElement.innerHTML = '';
-
-    new QRCode(qrElement,{
-
-      text:qrData,
-
-      width:180,
-      height:180,
-
-      colorDark:"#000000",
-      colorLight:"#ffffff",
-
-      correctLevel:
-      QRCode.CorrectLevel.H
-
-    });
-
-  });
-
-  grandTotal.textContent =
-    totalSum.toFixed(2);
+});
 
 }
 
-/* ================= ADD ================= */
+/* ================= QR SCAN ================= */
 
-async function addItem(){
+function scanQR(){
 
-  const name =
-    document.getElementById('name')
-    .value.trim();
+let sc = new Html5Qrcode("reader");
 
-  const qty =
-    Number(
-      document.getElementById('qty').value
-    );
+sc.start(
+{facingMode:"environment"},
+{fps:10,qrbox:250},
 
-  const unit =
-    document.getElementById('unit')
-    .value.trim() || 'шт';
+async(txt)=>{
 
-  const price =
-    Number(
-      document.getElementById('price').value
-    ) || 0;
+if(lastScan === txt) return;
+lastScan = txt;
 
-  if(!name || isNaN(qty)){
+let d = JSON.parse(decodeURIComponent(txt));
 
-    alert('Введите данные');
+let ex = items.find(i=>i.name===d.name);
 
-    return;
-  }
-
-  const item = {
-
-    name,
-    qty,
-    unit,
-    price
-
-  };
-
-  inventory.push(item);
-
-  render();
-
-  await saveItemToCloud(item);
-
-  document.getElementById('name').value='';
-  document.getElementById('qty').value='';
-  document.getElementById('unit').value='';
-  document.getElementById('price').value='';
-
+if(ex){
+ex.qty = d.qty;
+ex.price = d.price;
+}else{
+items.push(d);
 }
 
-/* ================= QR ================= */
+render();
 
-function startScanner(){
+sc.stop();
 
-  const scanner =
-    new Html5Qrcode('reader');
-
-  scanner.start(
-
-    { facingMode:'environment' },
-
-    {
-
-      fps:30,
-
-      qrbox:{
-        width:300,
-        height:300
-      }
-
-    },
-
-    async(text)=>{
-
-      try{
-
-        const decoded =
-          decodeURIComponent(text);
-
-        const data =
-          JSON.parse(decoded);
-
-        const currentState =
-          JSON.stringify(data);
-
-        if(
-          lastQrState[data.name]
-          === currentState
-        ){
-
-          alert(
-            '⚠️ Изменений нет'
-          );
-
-          scanner.stop();
-
-          return;
-        }
-
-        lastQrState[data.name] =
-          currentState;
-
-        const existing =
-          inventory.find(
-            i=>i.name===data.name
-          );
-
-        if(existing){
-
-          existing.qty = data.qty;
-          existing.unit = data.unit;
-          existing.price = data.price;
-
-        }else{
-
-          inventory.push(data);
-
-          await saveItemToCloud(data);
-
-        }
-
-        render();
-
-        scanner.stop();
-
-        alert(
-          '✅ QR обновлён'
-        );
-
-      }catch(e){
-
-        console.log(e);
-
-        alert('Ошибка QR');
-
-        scanner.stop();
-
-      }
-
-    }
-
-  );
-
-}
-
-/* ================= SHARE ================= */
-
-async function shareQR(index){
-
-  const container =
-    document.getElementById(
-      `qr-${index}`
-    );
-
-  const img =
-    container.querySelector('img');
-
-  if(!img){
-
-    return;
-  }
-
-  try{
-
-    const response =
-      await fetch(img.src);
-
-    const blob =
-      await response.blob();
-
-    const file =
-      new File(
-
-        [blob],
-
-        `qr-${inventory[index].name}.png`,
-
-        {
-          type:'image/png'
-        }
-
-      );
-
-    if(
-      navigator.canShare &&
-      navigator.canShare({
-        files:[file]
-      })
-    ){
-
-      await navigator.share({
-
-        title:
-          inventory[index].name,
-
-        text:
-          'QR код товара',
-
-        files:[file]
-
-      });
-
-    }
-
-  }catch(e){
-
-    console.log(e);
-
-  }
-
-}
-
-/* ================= EDIT ================= */
-
-function editItem(index){
-
-  const item =
-    inventory[index];
-
-  const newName =
-    prompt(
-      'Название',
-      item.name
-    );
-
-  if(newName === null) return;
-
-  const newQty =
-    prompt(
-      'Остаток',
-      item.qty
-    );
-
-  if(newQty === null) return;
-
-  const newUnit =
-    prompt(
-      'Единица',
-      item.unit
-    );
-
-  if(newUnit === null) return;
-
-  const newPrice =
-    prompt(
-      'Цена',
-      item.price
-    );
-
-  if(newPrice === null) return;
-
-  inventory[index] = {
-
-    ...item,
-
-    name:newName,
-
-    qty:Number(newQty),
-
-    unit:newUnit,
-
-    price:Number(newPrice)
-
-  };
-
-  render();
-
-}
-
-/* ================= DELETE ================= */
-
-function deleteItem(index){
-
-  if(confirm('Удалить товар?')){
-
-    inventory.splice(index,1);
-
-    render();
-
-  }
+});
 
 }
 
@@ -1101,88 +331,33 @@ function deleteItem(index){
 
 function exportExcel(){
 
-  if(inventory.length === 0){
+let data = items.map(i=>({
+Товар:i.name,
+Кол:i.qty,
+Цена:i.price,
+Сумма:i.qty*i.price
+}));
 
-    alert('Нет данных');
+let ws = XLSX.utils.json_to_sheet(data);
+let wb = XLSX.utils.book_new();
 
-    return;
-  }
+XLSX.utils.book_append_sheet(wb,ws,"Склад");
 
-  const excelData =
-    inventory.map(item=>({
-
-      "Товар":
-      item.name,
-
-      "Остаток":
-      item.qty,
-
-      "Единица":
-      item.unit,
-
-      "Цена":
-      item.price,
-
-      "Сумма":
-      item.qty * item.price
-
-    }));
-
-  const worksheet =
-    XLSX.utils.json_to_sheet(
-      excelData
-    );
-
-  const workbook =
-    XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(
-
-    workbook,
-
-    worksheet,
-
-    'Склад'
-
-  );
-
-  XLSX.writeFile(
-
-    workbook,
-
-    'Склад.xlsx'
-
-  );
+XLSX.writeFile(wb,"warehouse.xlsx");
 
 }
 
-/* ================= AUTO LOGIN ================= */
+/* AUTO LOGIN */
+window.onload=()=>{
 
-window.onload = ()=>{
+let u = localStorage.getItem("u");
 
-  const savedUser =
-    localStorage.getItem(
-      'warehouse_user'
-    );
-
-  if(savedUser){
-
-    currentUser =
-      JSON.parse(savedUser);
-
-    document
-    .getElementById('authScreen')
-    .classList
-    .add('hidden');
-
-    document
-    .getElementById('appScreen')
-    .classList
-    .remove('hidden');
-
-    loadInventory();
-
-  }
+if(u){
+user = JSON.parse(u);
+auth.classList.add("hidden");
+app.classList.remove("hidden");
+loadItems();
+}
 
 }
 
