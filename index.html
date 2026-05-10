@@ -5,40 +5,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Склад PRO + Users</title>
+<title>Склад PRO Users</title>
 
-<!-- QR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<!-- Scanner -->
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 
 body{
   font-family:Arial;
-  background:#f0f2f5;
   margin:0;
-  padding:10px;
+  background:#f0f2f5;
 }
 
-.container{
-  max-width:1200px;
-  margin:auto;
+.auth{
+  max-width:400px;
+  margin:80px auto;
   background:white;
-  padding:15px;
+  padding:20px;
   border-radius:15px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.1);
-  display:none;
 }
-
-h1{text-align:center;}
 
 input{
   width:100%;
@@ -47,31 +35,27 @@ input{
 }
 
 button{
+  width:100%;
   padding:10px;
   border:none;
+  margin-top:5px;
   border-radius:8px;
   color:white;
-  cursor:pointer;
-}
-
-.auth{
-  max-width:400px;
-  margin:50px auto;
-  background:white;
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.1);
 }
 
 .loading{
   display:none;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.4);
   text-align:center;
-  margin-top:50px;
+  color:white;
+  padding-top:20%;
 }
 
 .spinner{
-  width:50px;
-  height:50px;
+  width:60px;
+  height:60px;
   border:6px solid #eee;
   border-top:6px solid #3498db;
   border-radius:50%;
@@ -81,6 +65,15 @@ button{
 
 @keyframes spin{
   100%{transform:rotate(360deg);}
+}
+
+.container{
+  display:none;
+  max-width:1200px;
+  margin:auto;
+  background:white;
+  padding:15px;
+  border-radius:15px;
 }
 
 table{
@@ -94,19 +87,13 @@ th,td{
   text-align:center;
 }
 
-.actions{
-  display:flex;
-  flex-direction:column;
-  gap:5px;
-}
-
 </style>
 
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<!-- AUTH -->
 <div class="auth" id="authBox">
 
 <h2>🔐 Вход</h2>
@@ -114,25 +101,19 @@ th,td{
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Пароль">
 
-<button style="background:#2ecc71;width:100%;" onclick="signUp()">Регистрация</button>
-<button style="background:#3498db;width:100%;margin-top:10px;" onclick="signIn()">Войти</button>
+<button style="background:#2ecc71;" onclick="signUp()">Регистрация</button>
+<button style="background:#3498db;" onclick="signIn()">Войти</button>
 
 </div>
 
 <!-- LOADING -->
 <div class="loading" id="loading">
-<div class="spinner"></div>
-<p>Загрузка...</p>
-</div>
-
-<!-- USER -->
-<div style="text-align:center;display:none;" id="userPanel">
-  <p id="userEmail"></p>
-  <button style="background:#e74c3c;" onclick="logout()">Выйти</button>
+  <div class="spinner"></div>
+  <p>Загрузка...</p>
 </div>
 
 <!-- APP -->
-<div class="container">
+<div class="container" id="app">
 
 <h1>📦 Склад</h1>
 
@@ -141,11 +122,8 @@ th,td{
 <input id="unit" placeholder="Ед">
 <input id="price" type="number" placeholder="Цена">
 
-<button style="background:#2ecc71;" onclick="addItem()">➕ Добавить</button>
-<button style="background:#3498db;" onclick="startScanner()">📷 Скан</button>
-<button style="background:#27ae60;" onclick="exportExcel()">📊 Excel</button>
-
-<div id="reader"></div>
+<button onclick="addItem()" style="background:#2ecc71;">➕</button>
+<button onclick="startScanner()" style="background:#3498db;">📷</button>
 
 <table>
 
@@ -154,46 +132,44 @@ th,td{
 <th>Товар</th>
 <th>Остаток</th>
 <th>Цена</th>
-<th>Сумма</th>
-<th>QR</th>
-<th>Действия</th>
 </tr>
 </thead>
 
-<tbody id="tableBody"></tbody>
+<tbody id="table"></tbody>
 
 </table>
-
-<h3>💰 Итого: <span id="total">0</span> ₴</h3>
 
 </div>
 
 <script>
 
-const supabase = window.supabase.createClient(
+const supabase =
+window.supabase.createClient(
   "https://zwoaxfrijvtfclzdodpf.supabase.co",
   "YOUR_KEY"
 );
 
-let inventory = JSON.parse(localStorage.getItem("inv")) || [];
-
-let lastQR = "";
+let userId = null;
+let inventory = [];
 
 function showLoading(v){
-  document.getElementById("loading").style.display = v?"block":"none";
-  document.getElementById("authBox").style.display = v?"none":"block";
+  document.getElementById("loading").style.display =
+  v ? "block" : "none";
 }
 
 function showApp(){
   document.getElementById("authBox").style.display="none";
-  document.querySelector(".container").style.display="block";
-  document.getElementById("userPanel").style.display="block";
+  document.getElementById("app").style.display="block";
 }
 
+/* AUTH */
+
 async function signUp(){
+
   showLoading(true);
 
-  const { error } = await supabase.auth.signUp({
+  const { error } =
+  await supabase.auth.signUp({
     email:email.value,
     password:password.value
   });
@@ -201,13 +177,15 @@ async function signUp(){
   showLoading(false);
 
   if(error) alert(error.message);
-  else alert("Готово! Теперь войди");
+  else alert("Создано");
 }
 
 async function signIn(){
+
   showLoading(true);
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } =
+  await supabase.auth.signInWithPassword({
     email:email.value,
     password:password.value
   });
@@ -219,132 +197,88 @@ async function signIn(){
     return;
   }
 
-  checkUser();
+  userId = data.user.id;
+
+  await loadData();
+
+  showApp();
 }
 
-async function checkUser(){
+/* LOAD DATA */
 
-  const { data:{ user } } = await supabase.auth.getUser();
+async function loadData(){
 
-  if(user){
-    document.getElementById("userEmail").innerText = "👤 "+user.email;
-    showApp();
-  }
+  const { data } =
+  await supabase
+  .from("inventory")
+  .select("*")
+  .eq("user_id", userId);
+
+  inventory = data || [];
+
+  render();
 }
 
-async function logout(){
-  await supabase.auth.signOut();
-  location.reload();
-}
+/* ADD */
 
-/* -------- INVENTORY -------- */
+async function addItem(){
 
-function save(){
-  localStorage.setItem("inv",JSON.stringify(inventory));
-}
-
-function render(){
-
-  let t = 0;
-  tableBody.innerHTML="";
-
-  inventory.forEach((i,idx)=>{
-
-    let sum = i.qty*i.price;
-    t+=sum;
-
-    let tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${i.name}</td>
-      <td>${i.qty} ${i.unit}</td>
-      <td>${i.price}</td>
-      <td>${sum}</td>
-      <td><div id="qr${idx}"></div></td>
-      <td class="actions">
-        <button onclick="edit(${idx})">✏️</button>
-        <button onclick="del(${idx})">🗑</button>
-      </td>
-    `;
-
-    tableBody.appendChild(tr);
-
-    new QRCode(document.getElementById("qr"+idx),{
-      text:JSON.stringify(i),
-      width:120,
-      height:120
-    });
-
-  });
-
-  total.innerText = t;
-}
-
-function addItem(){
-
-  inventory.push({
+  const item = {
     name:name.value,
     qty:+qty.value,
     unit:unit.value,
-    price:+price.value
-  });
+    price:+price.value,
+    user_id:userId
+  };
 
-  save();
-  render();
+  await supabase
+  .from("inventory")
+  .insert(item);
+
+  loadData();
 }
 
-function edit(i){
-  inventory[i].qty = prompt("Новый остаток",inventory[i].qty);
-  save();
-  render();
-}
+/* RENDER */
 
-function del(i){
-  inventory.splice(i,1);
-  save();
-  render();
-}
+function render(){
 
-/* SCANNER */
+  table.innerHTML="";
 
-function startScanner(){
+  inventory.forEach(i=>{
 
-  let scanner = new Html5Qrcode("reader");
+    let tr=document.createElement("tr");
 
-  scanner.start({facingMode:"environment"},{fps:20,qrbox:250},text=>{
+    tr.innerHTML=`
+      <td>${i.name}</td>
+      <td>${i.qty} ${i.unit}</td>
+      <td>${i.price}</td>
+    `;
 
-    if(text===lastQR) return;
-
-    lastQR=text;
-
-    let d=JSON.parse(text);
-
-    let ex=inventory.find(i=>i.name==d.name);
-
-    if(ex) ex.qty+=d.qty;
-    else inventory.push(d);
-
-    save();
-    render();
+    table.appendChild(tr);
 
   });
 
-}
-
-/* EXCEL */
-
-function exportExcel(){
-
-  let ws = XLSX.utils.json_to_sheet(inventory);
-  let wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"data");
-  XLSX.writeFile(wb,"stock.xlsx");
 }
 
 /* INIT */
 
-checkUser();
-render();
+async function init(){
+
+  const { data:{ user } } =
+  await supabase.auth.getUser();
+
+  if(user){
+
+    userId=user.id;
+
+    await loadData();
+
+    showApp();
+
+  }
+}
+
+init();
 
 </script>
 
