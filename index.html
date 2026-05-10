@@ -2,23 +2,21 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Склад PRO Cloud FIX</title>
+<title>Materials App</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
 
 body{
   margin:0;
-  font-family:Segoe UI;
+  font-family:Arial;
   background:#eef2f7;
 }
 
 /* AUTH */
-.auth{
+#auth{
   height:100vh;
   display:flex;
   justify-content:center;
@@ -27,191 +25,104 @@ body{
 
 .card{
   background:white;
-  padding:25px;
+  padding:20px;
   border-radius:15px;
-  width:320px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.15);
+  width:300px;
 }
 
 input{
   width:100%;
-  padding:12px;
-  margin:6px 0;
-  border:1px solid #ddd;
-  border-radius:10px;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:10px;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.login{background:#3498db}
-.register{background:#2ecc71}
-
-/* LOADER */
-.loader{
-  position:fixed;
-  inset:0;
-  background:rgba(255,255,255,0.8);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-}
-
-.circle{
-  width:60px;
-  height:60px;
-  border:6px solid #ddd;
-  border-top:6px solid #3498db;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-
-@keyframes spin{
-  100%{transform:rotate(360deg);}
+  padding:10px;
+  margin:5px 0;
 }
 
 /* APP */
-.container{
-  max-width:1100px;
-  margin:20px auto;
-  background:white;
+#app{
+  display:none;
   padding:20px;
-  border-radius:15px;
 }
 
-.form{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;
-}
-
-.add{background:#2ecc71}
-.scan{background:#3498db}
-.excel{background:#27ae60}
-.logout{background:#2c3e50}
-
-/* TABLE */
 table{
   width:100%;
-  margin-top:15px;
   border-collapse:collapse;
 }
 
-th{
-  background:#34495e;
-  color:white;
+th,td{
   padding:10px;
-}
-
-td{
+  border-bottom:1px solid #ddd;
   text-align:center;
-  padding:10px;
-  border-bottom:1px solid #eee;
 }
 
-/* QR */
-.qr img{width:90px}
-
-/* hidden */
-.hidden{display:none!important}
+button{
+  padding:10px;
+  margin-top:5px;
+  width:100%;
+}
 
 </style>
 </head>
 
 <body>
 
-<!-- LOADER -->
-<div id="loader" class="loader hidden">
-  <div class="circle"></div>
-</div>
-
 <!-- AUTH -->
-<div id="auth" class="auth">
+<div id="auth">
   <div class="card">
 
-    <h3>📦 Склад PRO FIX anon</h3>
+    <h3>Вход</h3>
 
-    <input id="email" placeholder="Почта">
-    <input id="password" type="password" placeholder="Пароль">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
 
-    <button class="login" onclick="login()">Войти</button>
-    <button class="register" onclick="register()">Регистрация</button>
+    <button onclick="register()">Регистрация</button>
+    <button onclick="login()">Войти</button>
 
   </div>
 </div>
 
 <!-- APP -->
-<div id="app" class="hidden">
+<div id="app">
 
-<div class="container">
+<h2>📦 Материалы</h2>
 
-<button class="logout" onclick="logout()">Выйти</button>
+<button onclick="logout()">Выйти</button>
 
-<h2>📦 Ваш склад</h2>
-
-<div class="form">
+<br><br>
 
 <input id="name" placeholder="Название">
-<input id="qty" type="number" placeholder="Остаток">
-<input id="unit" placeholder="Ед">
+<input id="qty" type="number" placeholder="Количество">
 <input id="price" type="number" placeholder="Цена">
 
-<button class="add" onclick="addItem()">➕ Добавить</button>
-<button class="scan" onclick="startScan()">📷 QR</button>
-<button class="excel" onclick="exportExcel()">📊 Excel</button>
-
-</div>
-
-<div id="reader"></div>
+<button onclick="addItem()">Добавить</button>
+<button onclick="exportExcel()">Excel</button>
 
 <table>
 <thead>
 <tr>
-<th>Товар</th>
-<th>Остаток</th>
+<th>Название</th>
+<th>Кол-во</th>
 <th>Цена</th>
 <th>Сумма</th>
 <th>QR</th>
 </tr>
 </thead>
 
-<tbody id="table"></tbody>
+<tbody id="list"></tbody>
+
 </table>
 
-<h3>💰 Итого: <span id="total">0</span> ₴</h3>
-
-</div>
 </div>
 
 <script>
 
-/* SUPABASE */
 const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+const SUPABASE_KEY = "PASTE_KEY_HERE";
 
 let user = null;
 let items = [];
-let lastQR = {};
 
-/* LOADER */
-function show(v){
-  document.getElementById('loader')
-  .classList.toggle('hidden', !v);
-}
+/* ================= AUTH ================= */
 
-/* REGISTER */
 async function register(){
-
-  show(true);
 
   await fetch(SUPABASE_URL+"/auth/v1/signup",{
     method:"POST",
@@ -220,20 +131,15 @@ async function register(){
       "Content-Type":"application/json"
     },
     body:JSON.stringify({
-      email:email.value.trim(),
+      email:email.value,
       password:password.value
     })
   });
 
-  show(false);
-
-  alert("Регистрация отправлена");
+  alert("Регистрация OK");
 }
 
-/* LOGIN FIX */
 async function login(){
-
-  show(true);
 
   const res = await fetch(
     SUPABASE_URL+"/auth/v1/token?grant_type=password",
@@ -244,7 +150,7 @@ async function login(){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
-        email:email.value.trim(),
+        email:email.value,
         password:password.value
       })
     }
@@ -252,25 +158,29 @@ async function login(){
 
   const data = await res.json();
 
-  show(false);
-
   if(!data.access_token){
     alert("Ошибка входа");
     return;
   }
 
-  user = data.user;
+  const payload = JSON.parse(atob(data.access_token.split('.')[1]));
 
-  localStorage.setItem("user", JSON.stringify(user));
+  user = {
+    id: payload.sub,
+    email: email.value
+  };
+
   localStorage.setItem("token", data.access_token);
+  localStorage.setItem("user", JSON.stringify(user));
 
-  auth.classList.add("hidden");
-  app.classList.remove("hidden");
+  document.getElementById("auth").style.display="none";
+  document.getElementById("app").style.display="block";
 
   loadItems();
 }
 
-/* LOAD FIX */
+/* ================= LOAD ================= */
+
 async function loadItems(){
 
   const token = localStorage.getItem("token");
@@ -290,8 +200,20 @@ async function loadItems(){
   render();
 }
 
-/* SAVE FIX */
-async function save(item){
+/* ================= ADD ================= */
+
+async function addItem(){
+
+  const item = {
+    name:name.value,
+    qty:Number(qty.value),
+    price:Number(price.value),
+    user_id:user.id
+  };
+
+  items.push(item);
+
+  render();
 
   const token = localStorage.getItem("token");
 
@@ -302,150 +224,87 @@ async function save(item){
       Authorization:"Bearer "+token,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({
-      user_id:user.id,
-      ...item
-    })
+    body:JSON.stringify(item)
   });
 
 }
 
-/* ADD FIX */
-async function addItem(){
+/* ================= RENDER ================= */
 
-  const item = {
-    name:name.value.trim(),
-    qty:Number(qty.value),
-    unit:unit.value || "шт",
-    price:Number(price.value)
-  };
-
-  if(!item.name || isNaN(item.qty)){
-    alert("Заполни поля!");
-    return;
-  }
-
-  items.push(item);
-  render();
-
-  await save(item);
-
-  name.value="";
-  qty.value="";
-  unit.value="";
-  price.value="";
-}
-
-/* RENDER */
 function render(){
 
-  table.innerHTML = "";
-
-  let sum = 0;
+  list.innerHTML="";
 
   items.forEach((i,idx)=>{
 
-    sum += i.qty*i.price;
+    const tr = document.createElement("tr");
 
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
+    tr.innerHTML = `
       <td>${i.name}</td>
-      <td>${i.qty} ${i.unit}</td>
+      <td>${i.qty}</td>
       <td>${i.price}</td>
       <td>${i.qty*i.price}</td>
       <td><div id="qr${idx}"></div></td>
     `;
 
-    table.appendChild(row);
+    list.appendChild(tr);
 
     new QRCode(document.getElementById("qr"+idx),{
       text:JSON.stringify(i),
-      width:90,
-      height:90
+      width:80,
+      height:80
     });
 
   });
 
-  total.innerText = sum;
 }
 
-/* EXCEL FIX */
+/* ================= EXCEL ================= */
+
 function exportExcel(){
 
-  if(items.length === 0){
-    alert("Нет данных");
-    return;
-  }
-
   const data = items.map(i=>({
-    "Товар":i.name,
-    "Остаток":i.qty,
-    "Ед":i.unit,
-    "Цена":i.price,
-    "Сумма":i.qty*i.price
+    name:i.name,
+    qty:i.qty,
+    price:i.price,
+    sum:i.qty*i.price
   }));
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb,ws,"Склад");
+  XLSX.utils.book_append_sheet(wb,ws,"data");
 
-  XLSX.writeFile(wb,"склад.xlsx");
+  XLSX.writeFile(wb,"materials.xlsx");
 }
 
-/* SCAN */
-function startScan(){
+/* ================= LOGOUT ================= */
 
-  const scan = new Html5Qrcode("reader");
+function logout(){
 
-  scan.start(
-    {facingMode:"environment"},
-    {fps:10,qrbox:250},
-    (text)=>{
+  localStorage.clear();
+  location.reload();
 
-      const data = JSON.parse(text);
-
-      if(lastQR[data.name] === text){
-        alert("Нет изменений");
-        scan.stop();
-        return;
-      }
-
-      lastQR[data.name] = text;
-
-      items.push(data);
-
-      render();
-
-      scan.stop();
-
-    }
-  );
 }
 
-/* AUTO LOGIN FIX */
-window.onload = ()=>{
+/* ================= AUTO LOGIN ================= */
 
-  const saved = localStorage.getItem("user");
-  const token = localStorage.getItem("token");
+window.onload=()=>{
 
-  if(saved && token){
+  const u = localStorage.getItem("user");
+  const t = localStorage.getItem("token");
 
-    user = JSON.parse(saved);
+  if(u && t){
 
-    auth.classList.add("hidden");
-    app.classList.remove("hidden");
+    user = JSON.parse(u);
+
+    document.getElementById("auth").style.display="none";
+    document.getElementById("app").style.display="block";
 
     loadItems();
 
   }
 
-};
-
-function logout(){
-  localStorage.clear();
-  location.reload();
 }
 
 </script>
