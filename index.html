@@ -33,7 +33,7 @@
     }
 
     .container{
-      max-width:1200px;
+      max-width:1300px;
       margin:auto;
       background:var(--card);
       padding:20px;
@@ -108,7 +108,7 @@
       width:100%;
       border-collapse:collapse;
       margin-top:15px;
-      min-width:950px;
+      min-width:1100px;
     }
 
     th,td{
@@ -127,13 +127,14 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      min-width:110px;
-      min-height:110px;
+      min-width:190px;
+      min-height:190px;
     }
 
     .qr-container img{
-      width:100px;
-      height:100px;
+      width:180px;
+      height:180px;
+      image-rendering:pixelated;
     }
 
     .actions{
@@ -145,10 +146,11 @@
 
     #reader{
       width:100%;
-      max-width:400px;
+      max-width:420px;
       margin:15px auto;
       border-radius:12px;
       overflow:hidden;
+      border:3px solid #3498db;
     }
 
     .total-box{
@@ -170,8 +172,8 @@
       }
 
       .qr-container img{
-        width:80px;
-        height:80px;
+        width:150px;
+        height:150px;
       }
     }
 
@@ -237,6 +239,7 @@
   <table>
 
     <thead>
+
       <tr>
 
         <th>Товар</th>
@@ -252,6 +255,7 @@
         <th>Действия</th>
 
       </tr>
+
     </thead>
 
     <tbody id="tableBody"></tbody>
@@ -335,7 +339,9 @@ function render(){
       </td>
 
       <td class="qr-container">
+
         <div id="qr-${index}"></div>
+
       </td>
 
       <td>
@@ -378,10 +384,21 @@ function render(){
 
     qrElement.innerHTML = '';
 
+    // БОЛЬШОЙ КОНТРАСТНЫЙ QR
     new QRCode(qrElement,{
-      text:qrData,
-      width:100,
-      height:100
+
+      text: qrData,
+
+      width: 180,
+
+      height: 180,
+
+      colorDark : "#000000",
+
+      colorLight : "#ffffff",
+
+      correctLevel : QRCode.CorrectLevel.H
+
     });
 
   });
@@ -452,8 +469,18 @@ function startScanner(){
     { facingMode:'environment' },
 
     {
-      fps:10,
-      qrbox:250
+
+      fps:30,
+
+      qrbox:{
+        width:300,
+        height:300
+      },
+
+      aspectRatio:1.0,
+
+      disableFlip:false
+
     },
 
     (text)=>{
@@ -519,7 +546,7 @@ function startScanner(){
         scanner.stop();
 
         alert(
-          "✅ Товар успешно добавлен!"
+          "✅ QR успешно отсканирован!"
         );
 
       }catch(e){
