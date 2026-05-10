@@ -4,111 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>📦 Sklad Cloud PRO</title>
+<title>📦 Склад PRO Cloud</title>
 
-<!-- LIBS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 
-/* ================= GLOBAL ================= */
+/* ================= THEME ================= */
+
+:root{
+  --bg:#f0f2f5;
+  --card:#ffffff;
+  --primary:#3498db;
+  --green:#2ecc71;
+  --red:#e74c3c;
+  --orange:#f39c12;
+}
 
 body{
   margin:0;
-  font-family:Arial;
-  background:#eef2f7;
+  font-family:'Segoe UI',Tahoma;
+  background:var(--bg);
 }
-
-.hidden{display:none!important}
 
 /* ================= LOADER ================= */
 
-.loader-screen{
+.loader{
   position:fixed;
   inset:0;
   background:rgba(255,255,255,0.9);
   display:flex;
   justify-content:center;
   align-items:center;
+  z-index:999;
 }
 
-.circle{
-  width:60px;
-  height:60px;
-  border:6px solid #ddd;
-  border-top:6px solid #3498db;
+.spin{
+  width:70px;
+  height:70px;
+  border:8px solid #eee;
+  border-top:8px solid var(--primary);
   border-radius:50%;
-  animation:spin 1s linear infinite;
+  animation:rot 1s linear infinite;
 }
 
-@keyframes spin{
+@keyframes rot{
   100%{transform:rotate(360deg)}
 }
 
+.hidden{display:none!important}
+
 /* ================= AUTH ================= */
 
-.auth-screen{
+.auth{
   height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
 }
 
-.auth-box{
+.auth-card{
+  background:var(--card);
+  padding:25px;
+  border-radius:20px;
   width:320px;
-  background:#fff;
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+  box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-.auth-box input{
+.auth-card h2{
+  text-align:center;
+  color:#2c3e50;
+}
+
+.auth-card input{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin:5px 0;
+  border-radius:10px;
+  border:1px solid #ddd;
 }
 
-.auth-box button{
+.auth-card button{
   width:100%;
-  padding:10px;
-  margin-top:5px;
-  background:#3498db;
-  color:#fff;
+  padding:12px;
   border:none;
+  border-radius:10px;
+  margin-top:5px;
+  font-weight:bold;
+  color:white;
+  cursor:pointer;
 }
+
+.login{background:var(--primary)}
+.register{background:var(--green)}
 
 /* ================= APP ================= */
 
-.app{
-  padding:10px;
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  background:var(--card);
+  padding:20px;
+  border-radius:20px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
 }
 
-.container{
-  max-width:1100px;
-  margin:auto;
-  background:#fff;
-  padding:15px;
-  border-radius:15px;
+h1{
+  text-align:center;
+  color:#2c3e50;
+}
+
+.form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;
 }
 
 input{
   padding:10px;
-  margin:5px;
+  border-radius:10px;
+  border:1px solid #ddd;
 }
+
+button{
+  border:none;
+  padding:10px;
+  border-radius:10px;
+  color:white;
+  cursor:pointer;
+}
+
+.add{background:var(--green)}
+.scan{background:var(--primary)}
+.excel{background:#27ae60}
 
 /* ================= TABLE ================= */
 
 table{
   width:100%;
+  margin-top:20px;
   border-collapse:collapse;
-}
-
-td,th{
-  border:1px solid #ddd;
-  padding:8px;
-  text-align:center;
 }
 
 th{
@@ -116,68 +153,90 @@ th{
   color:white;
 }
 
-</style>
+td,th{
+  padding:10px;
+  text-align:center;
+  border-bottom:1px solid #eee;
+}
 
+.qr{
+  display:flex;
+  justify-content:center;
+}
+
+.actions button{
+  margin:2px;
+  font-size:12px;
+}
+
+.edit{background:var(--orange)}
+.del{background:var(--red)}
+
+</style>
 </head>
 
 <body>
 
 <!-- ================= LOADER ================= -->
-
-<div id="loader" class="loader-screen hidden">
-  <div class="circle"></div>
+<div id="loader" class="loader hidden">
+  <div class="spin"></div>
 </div>
 
 <!-- ================= AUTH ================= -->
+<div id="auth" class="auth">
 
-<div id="auth" class="auth-screen">
+  <div class="auth-card">
 
-  <div class="auth-box">
-
-    <h2>Вход</h2>
+    <h2>📦 Вход</h2>
 
     <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
+    <input id="password" type="password" placeholder="Пароль">
 
-    <button onclick="login()">Войти</button>
-    <button onclick="register()">Регистрация</button>
+    <button class="login" onclick="login()">Войти</button>
+    <button class="register" onclick="register()">Регистрация</button>
 
   </div>
 
 </div>
 
 <!-- ================= APP ================= -->
+<div id="app" class="hidden">
 
-<div id="app" class="hidden app">
+<div class="container">
 
-  <div class="container">
+<h1>📦 Склад PRO</h1>
 
-    <h2>📦 Склад</h2>
+<div class="form">
 
-    <input id="name" placeholder="Название">
-    <input id="qty" placeholder="Кол-во">
-    <input id="unit" placeholder="Ед">
-    <input id="price" placeholder="Цена">
+<input id="name" placeholder="Название">
+<input id="qty" placeholder="Кол-во">
+<input id="unit" placeholder="Ед">
+<input id="price" placeholder="Цена">
 
-    <button onclick="addItem()">Добавить</button>
-    <button onclick="logout()">Выйти</button>
+<button class="add" onclick="addItem()">Добавить</button>
+<button class="scan" onclick="startScan()">QR</button>
+<button class="excel" onclick="exportExcel()">Excel</button>
 
-    <table>
+</div>
 
-      <thead>
-        <tr>
-          <th>Товар</th>
-          <th>Кол-во</th>
-          <th>Цена</th>
-          <th>Сумма</th>
-        </tr>
-      </thead>
+<table>
 
-      <tbody id="table"></tbody>
+<thead>
+<tr>
+<th>Товар</th>
+<th>Кол-во</th>
+<th>Цена</th>
+<th>Сумма</th>
+<th>QR</th>
+<th>Действия</th>
+</tr>
+</thead>
 
-    </table>
+<tbody id="list"></tbody>
 
-  </div>
+</table>
+
+</div>
 
 </div>
 
@@ -185,82 +244,34 @@ th{
 
 /* ================= SUPABASE ================= */
 
-const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+const URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
 
-/* ================= STATE ================= */
+let user=null;
+let data=[];
 
-let user = null;
-let items = [];
+/* ================= START ================= */
 
-/* ================= LOADER ================= */
-
-function showLoader(){
-  document.getElementById("loader").classList.remove("hidden");
-  setTimeout(()=>hideLoader(), 6000);
-}
-
-function hideLoader(){
-  document.getElementById("loader").classList.add("hidden");
-}
-
-/* ================= START APP ================= */
-
-window.onload = () => {
-  start();
-};
-
-function start(){
-
-  hideLoader();
-
-  const saved = localStorage.getItem("user");
-
-  if(!saved){
-    return;
+window.onload=()=>{
+  const u=localStorage.getItem("u");
+  if(u){
+    user=JSON.parse(u);
+    auth.style.display="none";
+    app.classList.remove("hidden");
+    load();
   }
-
-  user = JSON.parse(saved);
-
-  document.getElementById("auth").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-
-  load();
 }
 
 /* ================= AUTH ================= */
 
-async function register(){
-
-  showLoader();
-
-  const r = await fetch(SUPABASE_URL+"/auth/v1/signup",{
-    method:"POST",
-    headers:{
-      apikey:SUPABASE_KEY,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
-  });
-
-  const d = await r.json();
-
-  alert(d.user ? "OK" : "error");
-
-  hideLoader();
-}
-
 async function login(){
 
-  showLoader();
+  loader.classList.remove("hidden");
 
-  const r = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+  const r=await fetch(URL+"/auth/v1/token?grant_type=password",{
     method:"POST",
     headers:{
-      apikey:SUPABASE_KEY,
+      apikey:KEY,
       "Content-Type":"application/json"
     },
     body:JSON.stringify({
@@ -269,45 +280,47 @@ async function login(){
     })
   });
 
-  const d = await r.json();
+  const d=await r.json();
 
   if(!d.access_token){
-    alert("error");
-    hideLoader();
+    alert("Ошибка");
+    loader.classList.add("hidden");
     return;
   }
 
-  const payload = JSON.parse(atob(d.access_token.split(".")[1]));
+  const p=JSON.parse(atob(d.access_token.split(".")[1]));
 
-  user = {id:payload.sub};
+  user={id:p.sub};
 
-  localStorage.setItem("user",JSON.stringify(user));
+  localStorage.setItem("u",JSON.stringify(user));
 
-  document.getElementById("auth").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
+  auth.classList.add("hidden");
+  app.classList.remove("hidden");
 
   load();
 
-  hideLoader();
+  loader.classList.add("hidden");
 }
 
-/* ================= DATA ================= */
+/* ================= LOAD ================= */
 
 async function load(){
 
-  const r = await fetch(
-    SUPABASE_URL+"/rest/v1/items?select=*",
-    {headers:{apikey:SUPABASE_KEY}}
-  );
+  const r=await fetch(URL+"/rest/v1/items?select=*",{
+    headers:{apikey:KEY}
+  });
 
-  items = await r.json();
+  data=await r.json();
 
   render();
+
 }
+
+/* ================= ADD ================= */
 
 async function addItem(){
 
-  const item = {
+  let item={
     name:name.value,
     qty:qty.value,
     unit:unit.value,
@@ -315,14 +328,14 @@ async function addItem(){
     user_id:user.id
   };
 
-  items.push(item);
+  data.push(item);
 
   render();
 
-  await fetch(SUPABASE_URL+"/rest/v1/items",{
+  await fetch(URL+"/rest/v1/items",{
     method:"POST",
     headers:{
-      apikey:SUPABASE_KEY,
+      apikey:KEY,
       "Content-Type":"application/json"
     },
     body:JSON.stringify(item)
@@ -334,19 +347,30 @@ async function addItem(){
 
 function render(){
 
-  const t = document.getElementById("table");
+  let t=document.getElementById("list");
 
-  t.innerHTML = "";
+  t.innerHTML="";
 
-  items.forEach(i=>{
+  data.forEach((i)=>{
 
-    t.innerHTML += `
-      <tr>
-        <td>${i.name}</td>
-        <td>${i.qty}</td>
-        <td>${i.price}</td>
-        <td>${i.qty*i.price}</td>
-      </tr>
+    let sum=i.qty*i.price;
+
+    let qr=encodeURIComponent(JSON.stringify(i));
+
+    t.innerHTML+=`
+
+    <tr>
+      <td>${i.name}</td>
+      <td>${i.qty}</td>
+      <td>${i.price}</td>
+      <td>${sum}</td>
+      <td class="qr"><div></div></td>
+      <td class="actions">
+        <button class="edit">✏</button>
+        <button class="del">🗑</button>
+      </td>
+    </tr>
+
     `;
 
   });
@@ -356,13 +380,11 @@ function render(){
 /* ================= LOGOUT ================= */
 
 function logout(){
-
-  localStorage.removeItem("user");
+  localStorage.removeItem("u");
   location.reload();
-
 }
 
 </script>
 
 </body>
-</html> 
+</html>
