@@ -265,9 +265,7 @@ th,td{
   <div class="auth-card">
 
     <div class="auth-title">
-
       📦 Склад Cloud
-
     </div>
 
     <input
@@ -404,7 +402,7 @@ const SUPABASE_URL =
 'https://zwoaxfrijvtfclzdodpf.supabase.co';
 
 const SUPABASE_KEY =
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw';
+'ВСТАВЬ_СВОЙ_ANON_KEY';
 
 /* ================= STATE ================= */
 
@@ -416,13 +414,19 @@ let lastQR = {};
 
 function showLoader(){
 
-  loader.classList.remove('hidden');
+  document
+  .getElementById('loader')
+  .classList
+  .remove('hidden');
 
 }
 
 function hideLoader(){
 
-  loader.classList.add('hidden');
+  document
+  .getElementById('loader')
+  .classList
+  .add('hidden');
 
 }
 
@@ -431,10 +435,12 @@ function hideLoader(){
 async function register(){
 
   const emailValue =
-    email.value.trim();
+    document.getElementById('email')
+    .value.trim();
 
   const passwordValue =
-    password.value;
+    document.getElementById('password')
+    .value;
 
   if(!emailValue || !passwordValue){
 
@@ -473,10 +479,7 @@ async function register(){
 
       );
 
-    const data =
-      await res.json();
-
-    console.log(data);
+    await res.json();
 
     hideLoader();
 
@@ -499,10 +502,12 @@ async function register(){
 async function login(){
 
   const emailValue =
-    email.value.trim();
+    document.getElementById('email')
+    .value.trim();
 
   const passwordValue =
-    password.value;
+    document.getElementById('password')
+    .value;
 
   if(!emailValue || !passwordValue){
 
@@ -544,8 +549,6 @@ async function login(){
     const data =
       await res.json();
 
-    console.log(data);
-
     hideLoader();
 
     if(!data.access_token){
@@ -582,9 +585,15 @@ async function login(){
       data.access_token
     );
 
-    authScreen.classList.add('hidden');
+    document
+    .getElementById('authScreen')
+    .classList
+    .add('hidden');
 
-    appScreen.classList.remove('hidden');
+    document
+    .getElementById('appScreen')
+    .classList
+    .remove('hidden');
 
     loadItems();
 
@@ -648,9 +657,7 @@ async function loadItems(){
 
     if(!res.ok){
 
-      console.log(
-        await res.text()
-      );
+      console.log(await res.text());
 
       items = [];
 
@@ -680,13 +687,12 @@ async function loadItems(){
 
 async function saveItem(item){
 
-  try{
+  const token =
+    localStorage.getItem(
+      'warehouse_token'
+    );
 
-    const token =
-      localStorage.getItem(
-        'warehouse_token'
-      );
-
+  const res =
     await fetch(
 
       SUPABASE_URL +
@@ -700,8 +706,12 @@ async function saveItem(item){
           apikey:SUPABASE_KEY,
           Authorization:
           'Bearer ' + token,
+
           'Content-Type':
-          'application/json'
+          'application/json',
+
+          'Prefer':
+          'return=minimal'
         },
 
         body:JSON.stringify({
@@ -722,70 +732,101 @@ async function saveItem(item){
 
     );
 
-  }catch(e){
-
-    console.log(e);
-
-  }
+  console.log(
+    'SAVE STATUS:',
+    res.status
+  );
 
 }
 
-/* ================= ADD ================= */
+/* ================= ADD ITEM ================= */
 
 async function addItem(){
+
+  const nameInput =
+    document.getElementById('name');
+
+  const qtyInput =
+    document.getElementById('qty');
+
+  const unitInput =
+    document.getElementById('unit');
+
+  const priceInput =
+    document.getElementById('price');
 
   const item = {
 
     name:
-      document
-      .getElementById('name')
-      .value.trim(),
+      nameInput.value.trim(),
 
-    qty:Number(
-
-      document
-      .getElementById('qty')
-      .value
-
-    ),
+    qty:
+      Number(qtyInput.value),
 
     unit:
+      unitInput.value.trim() || 'шт',
 
-      document
-      .getElementById('unit')
-      .value.trim() || 'шт',
-
-    price:Number(
-
-      document
-      .getElementById('price')
-      .value
-
-    ) || 0
+    price:
+      Number(priceInput.value) || 0
 
   };
 
-  if(!item.name || isNaN(item.qty)){
+  if(!item.name){
 
-    alert('Введите данные');
+    alert('Введите название');
 
     return;
   }
 
-  await saveItem(item);
+  if(isNaN(item.qty)){
 
-  await loadItems();
+    alert('Введите количество');
 
-  name.value='';
-  qty.value='';
-  unit.value='';
-  price.value='';
+    return;
+  }
+
+  try{
+
+    showLoader();
+
+    await saveItem(item);
+
+    await loadItems();
+
+    hideLoader();
+
+    nameInput.value = '';
+    qtyInput.value = '';
+    unitInput.value = '';
+    priceInput.value = '';
+
+    alert('✅ Материал добавлен');
+
+  }catch(e){
+
+    console.log(e);
+
+    hideLoader();
+
+    alert('Ошибка добавления');
+
+  }
 
 }
 
 /* ================= RENDER ================= */
 
 function render(){
+
+  const tableBody =
+    document.getElementById(
+      'tableBody'
+    );
+
+  const grandTotal =
+    document.getElementById(
+      'grandTotal'
+    );
 
   tableBody.innerHTML='';
 
@@ -805,44 +846,28 @@ function render(){
     row.innerHTML = `
 
     <td>
-
       <strong>
-
         ${i.name || 'Без названия'}
-
       </strong>
-
     </td>
 
     <td>
-
       ${i.qty || 0}
       ${i.unit || 'шт'}
-
     </td>
 
     <td>
-
-      ${Number(
-        i.price || 0
-      ).toFixed(2)} ₴
-
+      ${Number(i.price || 0).toFixed(2)} ₴
     </td>
 
     <td>
-
       <strong>
-
       ${sum.toFixed(2)} ₴
-
       </strong>
-
     </td>
 
     <td class="qr-container">
-
       <div id="qr-${index}"></div>
-
     </td>
 
     <td>
@@ -912,7 +937,7 @@ function render(){
 
 }
 
-/* ================= SCANNER ================= */
+/* ================= QR ================= */
 
 function startScanner(){
 
@@ -926,7 +951,6 @@ function startScanner(){
     {
 
       fps:10,
-
       qrbox:250
 
     },
@@ -942,10 +966,8 @@ function startScanner(){
           JSON.stringify(data);
 
         if(
-
           lastQR[data.name]
           === currentState
-
         ){
 
           alert('Нет изменений');
@@ -967,9 +989,13 @@ function startScanner(){
 
         };
 
+        showLoader();
+
         await saveItem(item);
 
         await loadItems();
+
+        hideLoader();
 
         scanner.stop();
 
@@ -978,6 +1004,8 @@ function startScanner(){
       }catch(e){
 
         console.log(e);
+
+        hideLoader();
 
         scanner.stop();
 
@@ -1054,7 +1082,7 @@ function deleteItem(index){
 
 /* ================= SHARE ================= */
 
-function shareQR(index){
+function shareQR(){
 
   alert(
     'QR можно отправить скриншотом 🙂'
@@ -1101,18 +1129,14 @@ function exportExcel(){
     XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(
-
     wb,
     ws,
     'Склад'
-
   );
 
   XLSX.writeFile(
-
     wb,
     'Склад.xlsx'
-
   );
 
 }
@@ -1136,13 +1160,15 @@ window.onload = ()=>{
     user =
       JSON.parse(savedUser);
 
-    authScreen.classList.add(
-      'hidden'
-    );
+    document
+    .getElementById('authScreen')
+    .classList
+    .add('hidden');
 
-    appScreen.classList.remove(
-      'hidden'
-    );
+    document
+    .getElementById('appScreen')
+    .classList
+    .remove('hidden');
 
     loadItems();
 
