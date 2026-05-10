@@ -4,59 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>📦 Склад PRO Cloud</title>
+<title>Склад Cloud</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-
-/* ================= THEME ================= */
-
-:root{
-  --bg:#f0f2f5;
-  --card:#ffffff;
-  --primary:#3498db;
-  --green:#2ecc71;
-  --red:#e74c3c;
-  --orange:#f39c12;
-}
-
-body{
-  margin:0;
-  font-family:'Segoe UI',Tahoma;
-  background:var(--bg);
-}
-
-/* ================= LOADER ================= */
-
-.loader{
-  position:fixed;
-  inset:0;
-  background:rgba(255,255,255,0.9);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-}
-
-.spin{
-  width:70px;
-  height:70px;
-  border:8px solid #eee;
-  border-top:8px solid var(--primary);
-  border-radius:50%;
-  animation:rot 1s linear infinite;
-}
-
-@keyframes rot{
-  100%{transform:rotate(360deg)}
-}
+body{margin:0;font-family:Arial;background:#f0f2f5}
 
 .hidden{display:none!important}
-
-/* ================= AUTH ================= */
 
 .auth{
   height:100vh;
@@ -65,162 +22,83 @@ body{
   align-items:center;
 }
 
-.auth-card{
-  background:var(--card);
+.card{
+  background:white;
   padding:25px;
-  border-radius:20px;
-  width:320px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.1);
-}
-
-.auth-card h2{
-  text-align:center;
-  color:#2c3e50;
-}
-
-.auth-card input{
-  width:100%;
-  padding:12px;
-  margin:5px 0;
-  border-radius:10px;
-  border:1px solid #ddd;
-}
-
-.auth-card button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  margin-top:5px;
-  font-weight:bold;
-  color:white;
-  cursor:pointer;
-}
-
-.login{background:var(--primary)}
-.register{background:var(--green)}
-
-/* ================= APP ================= */
-
-.container{
-  max-width:1200px;
-  margin:20px auto;
-  background:var(--card);
-  padding:20px;
-  border-radius:20px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.1);
-}
-
-h1{
-  text-align:center;
-  color:#2c3e50;
-}
-
-.form{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;
+  border-radius:15px;
+  width:300px;
 }
 
 input{
+  width:100%;
+  margin:5px 0;
   padding:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
 }
 
 button{
-  border:none;
+  width:100%;
   padding:10px;
-  border-radius:10px;
+  margin-top:5px;
+  background:#3498db;
   color:white;
+  border:none;
   cursor:pointer;
 }
 
-.add{background:var(--green)}
-.scan{background:var(--primary)}
-.excel{background:#27ae60}
-
-/* ================= TABLE ================= */
+.container{
+  max-width:1200px;
+  margin:auto;
+  background:white;
+  padding:15px;
+}
 
 table{
   width:100%;
-  margin-top:20px;
   border-collapse:collapse;
 }
 
-th{
-  background:#34495e;
-  color:white;
-}
-
 td,th{
-  padding:10px;
+  border:1px solid #ddd;
+  padding:8px;
   text-align:center;
-  border-bottom:1px solid #eee;
 }
-
-.qr{
-  display:flex;
-  justify-content:center;
-}
-
-.actions button{
-  margin:2px;
-  font-size:12px;
-}
-
-.edit{background:var(--orange)}
-.del{background:var(--red)}
-
 </style>
+
 </head>
 
 <body>
 
-<!-- ================= LOADER ================= -->
-<div id="loader" class="loader hidden">
-  <div class="spin"></div>
-</div>
-
-<!-- ================= AUTH ================= -->
+<!-- AUTH -->
 <div id="auth" class="auth">
+  <div class="card">
+    <h3>Вход</h3>
+    <input id="email" placeholder="email">
+    <input id="password" type="password" placeholder="password">
 
-  <div class="auth-card">
-
-    <h2>📦 Вход</h2>
-
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Пароль">
-
-    <button class="login" onclick="login()">Войти</button>
-    <button class="register" onclick="register()">Регистрация</button>
-
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Регистрация</button>
   </div>
-
 </div>
 
-<!-- ================= APP ================= -->
+<!-- APP -->
 <div id="app" class="hidden">
 
 <div class="container">
 
-<h1>📦 Склад PRO</h1>
+<h2>📦 Склад</h2>
 
-<div class="form">
+<button onclick="logout()">Выйти</button>
+
+<hr>
 
 <input id="name" placeholder="Название">
-<input id="qty" placeholder="Кол-во">
+<input id="qty" type="number" placeholder="Количество">
 <input id="unit" placeholder="Ед">
-<input id="price" placeholder="Цена">
+<input id="price" type="number" placeholder="Цена">
 
-<button class="add" onclick="addItem()">Добавить</button>
-<button class="scan" onclick="startScan()">QR</button>
-<button class="excel" onclick="exportExcel()">Excel</button>
-
-</div>
+<button onclick="addItem()">Добавить в QR и Excel</button>
 
 <table>
-
 <thead>
 <tr>
 <th>Товар</th>
@@ -228,161 +106,172 @@ td,th{
 <th>Цена</th>
 <th>Сумма</th>
 <th>QR</th>
-<th>Действия</th>
 </tr>
 </thead>
-
 <tbody id="list"></tbody>
-
 </table>
 
 </div>
-
 </div>
 
 <script>
 
-/* ================= SUPABASE ================= */
+const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
 
-const URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+let user = null;
+let items = [];
 
-let user=null;
-let data=[];
+/* ===== UI ===== */
 
-/* ================= START ================= */
-
-window.onload=()=>{
-  const u=localStorage.getItem("u");
-  if(u){
-    user=JSON.parse(u);
-    auth.style.display="none";
-    app.classList.remove("hidden");
-    load();
-  }
+function showAuth(){
+  document.getElementById("auth").classList.remove("hidden");
+  document.getElementById("app").classList.add("hidden");
 }
 
-/* ================= AUTH ================= */
+function showApp(){
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+}
+
+/* ===== AUTH ===== */
+
+async function register(){
+
+  const email = emailInput().value;
+  const password = passInput().value;
+
+  const res = await fetch(SUPABASE_URL+"/auth/v1/signup",{
+    method:"POST",
+    headers:{
+      apikey:SUPABASE_KEY,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({email,password})
+  });
+
+  alert("Проверь почту для входа");
+}
 
 async function login(){
 
-  loader.classList.remove("hidden");
+  const email = emailInput().value;
+  const password = passInput().value;
 
-  const r=await fetch(URL+"/auth/v1/token?grant_type=password",{
+  const res = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
     method:"POST",
     headers:{
-      apikey:KEY,
+      apikey:SUPABASE_KEY,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
+    body:JSON.stringify({email,password})
   });
 
-  const d=await r.json();
+  const data = await res.json();
 
-  if(!d.access_token){
-    alert("Ошибка");
-    loader.classList.add("hidden");
+  if(!data.access_token){
+    alert("Ошибка входа");
     return;
   }
 
-  const p=JSON.parse(atob(d.access_token.split(".")[1]));
-
-  user={id:p.sub};
-
-  localStorage.setItem("u",JSON.stringify(user));
-
-  auth.classList.add("hidden");
-  app.classList.remove("hidden");
-
-  load();
-
-  loader.classList.add("hidden");
+  user = data.user;
+  showApp();
+  loadItems();
 }
 
-/* ================= LOAD ================= */
+/* ===== LOAD ===== */
 
-async function load(){
+async function loadItems(){
 
-  const r=await fetch(URL+"/rest/v1/items?select=*",{
-    headers:{apikey:KEY}
-  });
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/items?user_id=eq."+user.id,
+    {
+      headers:{
+        apikey:SUPABASE_KEY
+      }
+    }
+  );
 
-  data=await r.json();
-
+  items = await res.json();
   render();
-
 }
 
-/* ================= ADD ================= */
+/* ===== ADD ===== */
 
 async function addItem(){
 
-  let item={
-    name:name.value,
-    qty:qty.value,
-    unit:unit.value,
-    price:price.value,
-    user_id:user.id
+  const item = {
+    user_id:user.id,
+    name:val("name"),
+    qty:Number(val("qty")),
+    unit:val("unit"),
+    price:Number(val("price"))
   };
 
-  data.push(item);
+  items.push(item);
 
-  render();
-
-  await fetch(URL+"/rest/v1/items",{
+  await fetch(SUPABASE_URL+"/rest/v1/items",{
     method:"POST",
     headers:{
-      apikey:KEY,
+      apikey:SUPABASE_KEY,
       "Content-Type":"application/json"
     },
     body:JSON.stringify(item)
   });
 
+  render();
 }
 
-/* ================= RENDER ================= */
+/* ===== RENDER ===== */
 
 function render(){
 
-  let t=document.getElementById("list");
+  const list = document.getElementById("list");
+  list.innerHTML = "";
 
-  t.innerHTML="";
+  items.forEach(i=>{
 
-  data.forEach((i)=>{
+    const tr = document.createElement("tr");
 
-    let sum=i.qty*i.price;
-
-    let qr=encodeURIComponent(JSON.stringify(i));
-
-    t.innerHTML+=`
-
-    <tr>
+    tr.innerHTML = `
       <td>${i.name}</td>
-      <td>${i.qty}</td>
+      <td>${i.qty} ${i.unit}</td>
       <td>${i.price}</td>
-      <td>${sum}</td>
-      <td class="qr"><div></div></td>
-      <td class="actions">
-        <button class="edit">✏</button>
-        <button class="del">🗑</button>
-      </td>
-    </tr>
-
+      <td>${i.qty*i.price}</td>
+      <td><div id="q${i.name}"></div></td>
     `;
 
-  });
+    list.appendChild(tr);
 
+    new QRCode(document.getElementById("q"+i.name),{
+      text:JSON.stringify(i),
+      width:80,
+      height:80
+    });
+
+  });
 }
 
-/* ================= LOGOUT ================= */
+/* ===== HELP ===== */
+
+function val(id){
+  return document.getElementById(id).value;
+}
+
+function emailInput(){
+  return document.getElementById("email");
+}
+
+function passInput(){
+  return document.getElementById("password");
+}
 
 function logout(){
-  localStorage.removeItem("u");
-  location.reload();
+  user=null;
+  showAuth();
 }
+
+showAuth();
 
 </script>
 
