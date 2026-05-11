@@ -5,16 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>📦 Склад PRO Cloud</title>
-
-<!-- QR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<!-- QR Scanner -->
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<title>📦 Склад Cloud</title>
 
 <style>
 
@@ -24,13 +15,12 @@
   --primary:#3498db;
   --success:#2ecc71;
   --danger:#e74c3c;
-  --orange:#f39c12;
 }
 
 body{
   margin:0;
-  background:var(--bg);
   font-family:'Segoe UI',Tahoma,sans-serif;
+  background:var(--bg);
 }
 
 .hidden{
@@ -54,15 +44,15 @@ body{
   background:white;
   border-radius:20px;
   padding:30px;
-  box-shadow:0 5px 25px rgba(0,0,0,0.12);
+  box-shadow:0 5px 25px rgba(0,0,0,0.1);
 }
 
 .auth-title{
   text-align:center;
-  font-size:30px;
-  margin-bottom:20px;
-  color:#2c3e50;
+  font-size:32px;
   font-weight:bold;
+  margin-bottom:25px;
+  color:#2c3e50;
 }
 
 .auth-input{
@@ -88,11 +78,109 @@ body{
 }
 
 .login-btn{
-  background:#3498db;
+  background:var(--primary);
 }
 
 .register-btn{
-  background:#2ecc71;
+  background:var(--success);
+}
+
+/* ================= APP ================= */
+
+#appScreen{
+  padding:20px;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  background:var(--card);
+  border-radius:20px;
+  padding:20px;
+  box-shadow:0 4px 25px rgba(0,0,0,0.1);
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+h1{
+  margin:0;
+  color:#2c3e50;
+}
+
+.logout-btn{
+  background:#2c3e50;
+  color:white;
+  border:none;
+  padding:12px 18px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+/* ================= FORM ================= */
+
+.form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.form input{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  outline:none;
+}
+
+.add-btn{
+  background:var(--success);
+  color:white;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+/* ================= TABLE ================= */
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th{
+  background:#34495e;
+  color:white;
+}
+
+th,td{
+  padding:14px;
+  text-align:center;
+  border-bottom:1px solid #eee;
+}
+
+.total-box{
+  margin-top:20px;
+  text-align:right;
+  font-size:24px;
+  font-weight:bold;
+}
+
+.delete-btn{
+  background:var(--danger);
+  color:white;
+  border:none;
+  padding:10px;
+  border-radius:8px;
+  cursor:pointer;
 }
 
 /* ================= LOADER ================= */
@@ -107,7 +195,7 @@ body{
   z-index:9999;
 }
 
-.circle{
+.loader-circle{
   width:70px;
   height:70px;
   border:8px solid #eee;
@@ -122,124 +210,6 @@ body{
   }
 }
 
-/* ================= APP ================= */
-
-#appScreen{
-  padding:20px;
-}
-
-.container{
-  max-width:1300px;
-  margin:auto;
-  background:white;
-  border-radius:20px;
-  padding:20px;
-  box-shadow:0 4px 25px rgba(0,0,0,0.1);
-  overflow-x:auto;
-}
-
-h1{
-  text-align:center;
-  color:#2c3e50;
-}
-
-.form{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;
-  margin-bottom:20px;
-}
-
-input{
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  outline:none;
-}
-
-button{
-  border:none;
-  border-radius:10px;
-  padding:12px;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.btn-add{
-  background:#2ecc71;
-}
-
-.btn-scan{
-  background:#3498db;
-}
-
-.btn-excel{
-  background:#27ae60;
-}
-
-.btn-edit{
-  background:#f39c12;
-}
-
-.btn-del{
-  background:#e74c3c;
-}
-
-.btn-share{
-  background:#1da1f2;
-}
-
-.btn-logout{
-  background:#2c3e50;
-  margin-bottom:20px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:1100px;
-}
-
-th{
-  background:#34495e;
-  color:white;
-}
-
-th,td{
-  padding:12px;
-  text-align:center;
-  border-bottom:1px solid #eee;
-}
-
-.qr-container img{
-  width:120px;
-  height:120px;
-  image-rendering:pixelated;
-}
-
-.actions{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-#reader{
-  width:100%;
-  max-width:400px;
-  margin:20px auto;
-  border-radius:15px;
-  overflow:hidden;
-  border:3px solid #3498db;
-}
-
-.total-box{
-  margin-top:20px;
-  text-align:right;
-  font-size:24px;
-  font-weight:bold;
-}
-
 </style>
 
 </head>
@@ -249,7 +219,7 @@ th,td{
 
 <div id="loader" class="hidden">
 
-  <div class="circle"></div>
+  <div class="loader-circle"></div>
 
 </div>
 
@@ -299,93 +269,84 @@ th,td{
 
 <div id="appScreen" class="hidden">
 
-<div class="container">
+  <div class="container">
 
-<button
-  class="btn-logout"
-  onclick="logout()">
+    <div class="topbar">
 
-  🚪 Выйти
+      <h1>📦 Склад материалов</h1>
 
-</button>
+      <button
+        class="logout-btn"
+        onclick="logout()">
 
-<h1>📦 Складской учет</h1>
+        🚪 Выйти
 
-<div class="form">
+      </button>
 
-<input id="name" placeholder="Название">
+    </div>
 
-<input
-  id="qty"
-  type="number"
-  placeholder="Количество">
+    <!-- FORM -->
 
-<input
-  id="unit"
-  placeholder="Единица">
+    <div class="form">
 
-<input
-  id="price"
-  type="number"
-  placeholder="Цена">
+      <input
+        id="name"
+        placeholder="Название">
 
-<button
-  class="btn-add"
-  onclick="addItem()">
+      <input
+        id="qty"
+        type="number"
+        placeholder="Количество">
 
-  ➕ Добавить
+      <input
+        id="unit"
+        placeholder="Единица">
 
-</button>
+      <input
+        id="price"
+        type="number"
+        placeholder="Цена">
 
-<button
-  class="btn-scan"
-  onclick="startScanner()">
+      <button
+        class="add-btn"
+        onclick="addItem()">
 
-  📷 QR
+        ➕ Добавить
 
-</button>
+      </button>
 
-<button
-  class="btn-excel"
-  onclick="exportExcel()">
+    </div>
 
-  📊 Excel
+    <!-- TABLE -->
 
-</button>
+    <table>
 
-</div>
+      <thead>
 
-<div id="reader"></div>
+        <tr>
 
-<table>
+          <th>Название</th>
+          <th>Количество</th>
+          <th>Цена</th>
+          <th>Сумма</th>
+          <th>Удалить</th>
 
-<thead>
+        </tr>
 
-<tr>
+      </thead>
 
-<th>Название</th>
-<th>Количество</th>
-<th>Цена</th>
-<th>Сумма</th>
-<th>QR</th>
-<th>Действия</th>
+      <tbody id="tableBody"></tbody>
 
-</tr>
+    </table>
 
-</thead>
+    <div class="total-box">
 
-<tbody id="tableBody"></tbody>
+      💰 Итого:
+      <span id="grandTotal">0</span> ₴
 
-</table>
+    </div>
 
-<div class="total-box">
-
-💰 Итого:
-<span id="grandTotal">0</span> ₴
-
-</div>
-
-</div>
+  </div>
 
 </div>
 
@@ -397,13 +358,12 @@ const SUPABASE_URL =
 'https://zwoaxfrijvtfclzdodpf.supabase.co';
 
 const SUPABASE_KEY =
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw';
+'ВСТАВЬ_СВОЙ_ANON_KEY';
 
 /* ================= STATE ================= */
 
 let user = null;
 let items = [];
-let lastQR = {};
 
 /* ================= LOADER ================= */
 
@@ -429,17 +389,17 @@ function hideLoader(){
 
 async function register(){
 
-  const emailValue =
+  const email =
     document.getElementById('email')
     .value.trim();
 
-  const passwordValue =
+  const password =
     document.getElementById('password')
     .value;
 
-  if(!emailValue || !passwordValue){
+  if(!email || !password){
 
-    alert('Введите данные');
+    alert('Введите почту и пароль');
 
     return;
   }
@@ -448,7 +408,7 @@ async function register(){
 
   try{
 
-    const res =
+    const response =
       await fetch(
 
         SUPABASE_URL +
@@ -465,8 +425,8 @@ async function register(){
 
           body:JSON.stringify({
 
-            email:emailValue,
-            password:passwordValue
+            email,
+            password
 
           })
 
@@ -476,7 +436,15 @@ async function register(){
 
     hideLoader();
 
-    alert('✅ Регистрация успешна');
+    if(response.ok){
+
+      alert('✅ Регистрация успешна');
+
+    }else{
+
+      alert('Ошибка регистрации');
+
+    }
 
   }catch(e){
 
@@ -494,15 +462,15 @@ async function register(){
 
 async function login(){
 
-  const emailValue =
+  const email =
     document.getElementById('email')
     .value.trim();
 
-  const passwordValue =
+  const password =
     document.getElementById('password')
     .value;
 
-  if(!emailValue || !passwordValue){
+  if(!email || !password){
 
     alert('Введите данные');
 
@@ -513,7 +481,7 @@ async function login(){
 
   try{
 
-    const res =
+    const response =
       await fetch(
 
         SUPABASE_URL +
@@ -530,8 +498,8 @@ async function login(){
 
           body:JSON.stringify({
 
-            email:emailValue,
-            password:passwordValue
+            email,
+            password
 
           })
 
@@ -540,29 +508,31 @@ async function login(){
       );
 
     const data =
-      await res.json();
+      await response.json();
 
     hideLoader();
 
     if(!data.access_token){
 
-      alert('Ошибка входа');
+      alert('❌ Ошибка входа');
 
       return;
     }
 
     const payload =
       JSON.parse(
+
         atob(
           data.access_token
           .split('.')[1]
         )
+
       );
 
     user = {
 
       id:payload.sub,
-      email:emailValue
+      email
 
     };
 
@@ -576,15 +546,7 @@ async function login(){
       data.access_token
     );
 
-    document
-    .getElementById('authScreen')
-    .classList
-    .add('hidden');
-
-    document
-    .getElementById('appScreen')
-    .classList
-    .remove('hidden');
+    openApp();
 
     loadItems();
 
@@ -597,6 +559,22 @@ async function login(){
     alert('Ошибка входа');
 
   }
+
+}
+
+/* ================= OPEN APP ================= */
+
+function openApp(){
+
+  document
+  .getElementById('authScreen')
+  .classList
+  .add('hidden');
+
+  document
+  .getElementById('appScreen')
+  .classList
+  .remove('hidden');
 
 }
 
@@ -627,7 +605,7 @@ async function loadItems(){
         'warehouse_token'
       );
 
-    const res =
+    const response =
       await fetch(
 
         SUPABASE_URL +
@@ -645,12 +623,12 @@ async function loadItems(){
 
       );
 
-    items =
-      await res.json();
+    const data =
+      await response.json();
 
     items =
-      items.filter(
-        i=>i.user_id === user.id
+      data.filter(
+        item=>item.user_id === user.id
       );
 
     render();
@@ -686,8 +664,7 @@ async function saveItem(item){
 
           headers:{
 
-            apikey:
-            SUPABASE_KEY,
+            apikey:SUPABASE_KEY,
 
             Authorization:
             'Bearer ' + token,
@@ -729,7 +706,7 @@ async function saveItem(item){
 
     }
 
-    return data;
+    return data[0];
 
   }catch(e){
 
@@ -799,7 +776,7 @@ async function addItem(){
     return;
   }
 
-  items.push(saved[0]);
+  items.push(saved);
 
   render();
 
@@ -812,6 +789,54 @@ async function addItem(){
 
 }
 
+/* ================= DELETE ================= */
+
+async function deleteItem(id){
+
+  try{
+
+    const token =
+      localStorage.getItem(
+        'warehouse_token'
+      );
+
+    await fetch(
+
+      SUPABASE_URL +
+      '/rest/v1/items?id=eq.' + id,
+
+      {
+
+        method:'DELETE',
+
+        headers:{
+
+          apikey:SUPABASE_KEY,
+
+          Authorization:
+          'Bearer ' + token
+
+        }
+
+      }
+
+    );
+
+    items =
+      items.filter(
+        item=>item.id !== id
+      );
+
+    render();
+
+  }catch(e){
+
+    console.log(e);
+
+  }
+
+}
+
 /* ================= RENDER ================= */
 
 function render(){
@@ -821,149 +846,66 @@ function render(){
       'tableBody'
     );
 
-  tableBody.innerHTML='';
+  const grandTotal =
+    document.getElementById(
+      'grandTotal'
+    );
+
+  tableBody.innerHTML = '';
 
   let total = 0;
 
-  items.forEach((i,index)=>{
+  items.forEach(item=>{
 
     const row =
       document.createElement('tr');
 
     const sum =
-      Number(i.qty || 0) *
-      Number(i.price || 0);
+      Number(item.qty) *
+      Number(item.price);
 
     total += sum;
 
     row.innerHTML = `
 
-    <td>
-      <strong>
-        ${i.name}
-      </strong>
-    </td>
+      <td>
+        <strong>${item.name}</strong>
+      </td>
 
-    <td>
-      ${i.qty} ${i.unit}
-    </td>
+      <td>
+        ${item.qty} ${item.unit}
+      </td>
 
-    <td>
-      ${Number(i.price).toFixed(2)} ₴
-    </td>
+      <td>
+        ${Number(item.price).toFixed(2)} ₴
+      </td>
 
-    <td>
-      <strong>
-        ${sum.toFixed(2)} ₴
-      </strong>
-    </td>
+      <td>
+        <strong>
+          ${sum.toFixed(2)} ₴
+        </strong>
+      </td>
 
-    <td class="qr-container">
-      <div id="qr-${index}"></div>
-    </td>
-
-    <td>
-
-      <div class="actions">
+      <td>
 
         <button
-          class="btn-edit">
-          ✏️
+          class="delete-btn"
+          onclick="deleteItem(${item.id})">
+
+          🗑 Удалить
+
         </button>
 
-        <button
-          class="btn-del">
-          🗑
-        </button>
-
-      </div>
-
-    </td>
+      </td>
 
     `;
 
     tableBody.appendChild(row);
 
-    new QRCode(
-
-      document.getElementById(
-        `qr-${index}`
-      ),
-
-      {
-
-        text:JSON.stringify(i),
-
-        width:120,
-        height:120
-
-      }
-
-    );
-
   });
 
-  document.getElementById(
-    'grandTotal'
-  ).textContent =
-  total.toFixed(2);
-
-}
-
-/* ================= QR ================= */
-
-function startScanner(){
-
-  alert('QR Scanner работает');
-
-}
-
-/* ================= EXCEL ================= */
-
-function exportExcel(){
-
-  if(items.length === 0){
-
-    alert('Нет данных');
-
-    return;
-  }
-
-  const excelData =
-    items.map(i=>({
-
-      "Название":
-      i.name,
-
-      "Количество":
-      i.qty,
-
-      "Единица":
-      i.unit,
-
-      "Цена":
-      i.price
-
-    }));
-
-  const ws =
-    XLSX.utils.json_to_sheet(
-      excelData
-    );
-
-  const wb =
-    XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(
-    wb,
-    ws,
-    'Склад'
-  );
-
-  XLSX.writeFile(
-    wb,
-    'Склад.xlsx'
-  );
+  grandTotal.textContent =
+    total.toFixed(2);
 
 }
 
@@ -986,15 +928,7 @@ window.onload = ()=>{
     user =
       JSON.parse(savedUser);
 
-    document
-    .getElementById('authScreen')
-    .classList
-    .add('hidden');
-
-    document
-    .getElementById('appScreen')
-    .classList
-    .remove('hidden');
+    openApp();
 
     loadItems();
 
