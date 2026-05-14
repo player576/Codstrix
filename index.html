@@ -1,382 +1,173 @@
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>СКЛАД ПРО - Система обліку</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Склад Улік & QR Генератор</title>
+    <!-- Подключаем библиотеку для генерации QR-кодов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --bg: #f4f7f6;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+        h1 { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        
+        .form-group { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #219150; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: var(--primary); color: white; }
+
+        .qr-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .print-btn { background: #3498db; font-size: 12px; }
+
+        /* Стили для печати */
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
         }
 
-        .modal-active {
-            display: flex !important;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .nav-active {
-            background-color: #2563eb !important;
-            color: white !important;
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
-        }
-
-        .mobile-nav-active {
-            color: #3b82f6 !important;
-        }
+        #printArea { display: none; }
     </style>
 </head>
-<body class="pb-24 md:pb-0 md:pl-64">
+<body>
 
-    <!-- Скрытый фрейм для печати -->
-    <iframe id="printFrame" style="position: absolute; top: -1000px; left: -1000px; width: 0; height: 0;"></iframe>
-
-    <!-- Sidebar - Desktop -->
-    <aside class="hidden md:flex flex-col w-64 bg-white border-r fixed inset-y-0 left-0 z-40">
-        <div class="p-6 flex items-center gap-2 text-blue-600 font-black text-xl">
-            <i class="fas fa-box"></i>
-            <span>СКЛАД ПРО</span>
-        </div>
-        <nav class="flex-1 px-4 space-y-1">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold transition-all text-slate-400 hover:bg-slate-50">
-                <i class="fas fa-chart-line w-5"></i> Огляд
-            </button>
-            <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold transition-all text-slate-400 hover:bg-slate-50">
-                <i class="fas fa-boxes w-5"></i> Склад
-            </button>
-            <button onclick="switchTab('sales')" id="nav-sales" class="nav-btn w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold transition-all text-slate-400 hover:bg-slate-50">
-                <i class="fas fa-shopping-cart w-5"></i> Реалізація
-            </button>
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="p-4 md:p-10 max-w-5xl mx-auto">
-        
-        <!-- Dashboard Tab -->
-        <div id="dashboard" class="tab-content active">
-            <h2 class="text-2xl font-black mb-6">Дашборд</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div class="bg-white p-6 rounded-[2rem] border shadow-sm">
-                    <div class="text-xs font-bold text-slate-400 uppercase mb-1">На складі (грн)</div>
-                    <div id="stat-total-value" class="text-2xl font-black text-slate-900">0 ₴</div>
-                </div>
-                <div class="bg-white p-6 rounded-[2rem] border shadow-sm">
-                    <div class="text-xs font-bold text-slate-400 uppercase mb-1">Виторг за сьогодні</div>
-                    <div id="stat-total-sales" class="text-2xl font-black text-emerald-600">0 ₴</div>
-                </div>
-                <div class="bg-white p-6 rounded-[2rem] border shadow-sm">
-                    <div class="text-xs font-bold text-slate-400 uppercase mb-1">Малий запас</div>
-                    <div id="stat-low-stock" class="text-2xl font-black text-red-600">0</div>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                <h3 class="font-bold mb-4 flex items-center gap-2 text-slate-700">
-                    <i class="fas fa-history text-slate-400"></i> Останні операції
-                </h3>
-                <div id="sales-history" class="space-y-3">
-                    <p class="text-slate-400 text-sm py-4 text-center">Історія продажів порожня</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Inventory Tab -->
-        <div id="inventory" class="tab-content">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black">Складські запаси</h2>
-                <button onclick="openAddModal()" class="bg-blue-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg active:scale-95 transition-all">
-                    <i class="fas fa-plus"></i> Новий товар
-                </button>
-            </div>
-            <div class="relative mb-6">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" oninput="filterItems(this.value)" placeholder="Пошук товару..." class="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm">
-            </div>
-            <div id="inventory-list" class="grid grid-cols-1 gap-3">
-                <!-- Items injected by JS -->
-            </div>
-        </div>
-
-        <!-- Sales Tab -->
-        <div id="sales" class="tab-content">
-            <h2 class="text-2xl font-black mb-6">Реалізація</h2>
-            <div id="sales-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Sales cards injected by JS -->
-            </div>
-        </div>
-    </main>
-
-    <!-- Mobile Nav -->
-    <nav class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900 text-white rounded-3xl flex justify-around p-3 z-40 shadow-2xl">
-        <button onclick="switchTab('dashboard')" class="mobile-nav-btn p-2 opacity-50" data-tab="dashboard"><i class="fas fa-chart-line text-xl"></i></button>
-        <button onclick="switchTab('inventory')" class="mobile-nav-btn p-2 opacity-50" data-tab="inventory"><i class="fas fa-boxes text-xl"></i></button>
-        <button onclick="switchTab('sales')" class="mobile-nav-btn p-2 opacity-50" data-tab="sales"><i class="fas fa-shopping-cart text-xl"></i></button>
-    </nav>
-
-    <!-- Add Item Modal -->
-    <div id="addModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl space-y-4">
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-2xl font-black">Новий товар</h2>
-                <button onclick="closeAddModal()" class="text-slate-400 p-2 hover:bg-slate-50 rounded-full"><i class="fas fa-times"></i></button>
-            </div>
-            <input id="item-name" placeholder="Назва товару" class="w-full p-4 bg-slate-50 rounded-xl outline-none font-medium">
-            <div class="grid grid-cols-2 gap-2">
-                <input id="item-price" type="number" placeholder="Ціна ₴" class="w-full p-4 bg-slate-50 rounded-xl outline-none font-bold">
-                <input id="item-category" placeholder="Категорія" class="w-full p-4 bg-slate-50 rounded-xl outline-none">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <input id="item-stock" type="number" placeholder="Кількість" class="w-full p-4 bg-slate-50 rounded-xl outline-none">
-                <input id="item-min" type="number" placeholder="Мінімум" value="5" class="w-full p-4 bg-slate-50 rounded-xl outline-none">
-            </div>
-            <div class="flex gap-2 pt-4">
-                <button onclick="closeAddModal()" class="flex-1 p-4 bg-slate-100 rounded-xl font-bold">Скасувати</button>
-                <button onclick="saveNewItem()" class="flex-1 p-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg">Зберегти</button>
-            </div>
-        </div>
+<div class="container">
+    <h1>Учёт склада (UAH ₴)</h1>
+    
+    <!-- Форма добавления -->
+    <div class="form-group no-print">
+        <input type="text" id="itemName" placeholder="Назва товару">
+        <input type="number" id="itemPrice" placeholder="Ціна (грн)">
+        <input type="number" id="itemQty" placeholder="Кількість">
+        <button onclick="addItem()">Додати товар</button>
     </div>
 
-    <!-- QR Modal -->
-    <div id="qrModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-6">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs animate-in zoom-in-95 duration-200 text-center">
-            <div class="flex justify-between items-center mb-6">
-                <div class="w-6"></div>
-                <span class="font-bold text-slate-400 text-xs uppercase tracking-widest">Етикетка</span>
-                <button onclick="closeQrModal()" class="text-slate-400 p-2 hover:bg-slate-50 rounded-full"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="mb-6">
-                <div id="qr-item-name" class="font-black text-xl mb-1">Товар</div>
-                <div id="qr-item-price" class="text-3xl font-black text-blue-600 mb-4">0 ₴</div>
-                <div class="bg-slate-50 p-4 rounded-3xl inline-block border border-dashed border-slate-200">
-                    <img id="qr-img-placeholder" src="" alt="QR" class="w-40 h-40">
-                </div>
-                <div id="qr-item-id" class="mt-4 font-mono text-[10px] text-slate-400">ID: ---</div>
-            </div>
-            <button id="btnPrint" onclick="printCurrentItem()" class="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-5 rounded-[1.5rem] font-black hover:bg-slate-800 transition-all active:scale-95 shadow-xl">
-                <i class="fas fa-print"></i> ДРУКУВАТИ
-            </button>
-        </div>
-    </div>
+    <!-- Таблица товаров -->
+    <table id="inventoryTable">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Ціна (₴)</th>
+                <th>К-сть</th>
+                <th>QR-код</th>
+                <th class="no-print">Дії</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody">
+            <!-- Сюда попадают данные -->
+        </tbody>
+    </table>
+</div>
 
-    <script>
-        // --- Початкові дані ---
-        let items = [
-            { id: '101', name: 'Кабель Type-C Fast', price: 250, stock: 45, minStock: 10, category: 'Аксесуари' },
-            { id: '102', name: 'Блок живлення 20W', price: 650, stock: 8, minStock: 15, category: 'Аксесуари' },
-            { id: '103', name: 'Скло iPhone 13', price: 300, stock: 100, minStock: 20, category: 'Захист' }
-        ];
-        let sales = [];
-        let currentQrItem = null;
+<!-- Скрытая область для печати только QR -->
+<div id="printArea">
+    <div id="qrToPrint"></div>
+    <h2 id="nameToPrint" style="text-align: center;"></h2>
+    <p id="priceToPrint" style="text-align: center;"></p>
+</div>
 
-        // --- Управління вкладками ---
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
+<script>
+    let inventory = [];
 
-            // Оновлення кнопок навігації
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            if(activeBtn) activeBtn.classList.add('nav-active');
+    function addItem() {
+        const name = document.getElementById('itemName').value;
+        const price = document.getElementById('itemPrice').value;
+        const qty = document.getElementById('itemQty').value;
 
-            document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('mobile-nav-active'));
-            const activeMobBtn = document.querySelector(`.mobile-nav-btn[data-tab="${tabId}"]`);
-            if(activeMobBtn) activeMobBtn.classList.add('mobile-nav-active');
+        if(!name || !price || !qty) return alert("Заповніть всі поля!");
 
-            if(tabId === 'dashboard') renderDashboard();
-            if(tabId === 'inventory') renderInventory();
-            if(tabId === 'sales') renderSales();
-        }
+        const item = {
+            id: Date.now(),
+            name,
+            price: parseFloat(price).toFixed(2),
+            qty
+        };
 
-        // --- Логіка Складу ---
-        function renderInventory() {
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = items.map(item => `
-                <div class="bg-white p-4 rounded-2xl border flex items-center justify-between hover:shadow-md transition-all">
-                    <div>
-                        <div class="font-bold text-lg text-slate-800">${item.name}</div>
-                        <div class="text-sm text-slate-500 font-medium">${item.stock} шт | ${item.category}</div>
+        inventory.push(item);
+        renderTable();
+        clearInputs();
+    }
+
+    function clearInputs() {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('itemQty').value = '';
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('inventoryBody');
+        tbody.innerHTML = '';
+
+        inventory.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${item.price} ₴</td>
+                <td>${item.qty}</td>
+                <td>
+                    <div class="qr-container">
+                        <div id="qr-${item.id}"></div>
+                        <button class="print-btn no-print" onclick="printQR(${item.id})">Друкувати QR</button>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div class="font-black text-lg">${item.price} ₴</div>
-                        <div class="flex gap-1">
-                            <button onclick="openQrModal('${item.id}')" class="p-3 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
-                                <i class="fas fa-qrcode text-xl"></i>
-                            </button>
-                            <button onclick="deleteItem('${item.id}')" class="p-3 text-red-400 hover:bg-red-50 rounded-xl transition-colors">
-                                <i class="fas fa-trash-alt text-xl"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
+                </td>
+                <td class="no-print">
+                    <button style="background:#e74c3c" onclick="removeItem(${item.id})">Видалити</button>
+                </td>
+            `;
+            tbody.appendChild(row);
 
-        function filterItems(term) {
-            const filtered = items.filter(i => i.name.toLowerCase().includes(term.toLowerCase()));
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = filtered.map(item => `
-                <div class="bg-white p-4 rounded-2xl border flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-lg">${item.name}</div>
-                        <div class="text-sm text-slate-500">${item.stock} шт | ${item.category}</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="font-black text-lg">${item.price} ₴</div>
-                        <button onclick="openQrModal('${item.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fas fa-qrcode text-xl"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // --- Модальні вікна ---
-        function openAddModal() { document.getElementById('addModal').classList.add('modal-active'); }
-        function closeAddModal() { document.getElementById('addModal').classList.remove('modal-active'); }
-
-        function saveNewItem() {
-            const name = document.getElementById('item-name').value;
-            const price = parseFloat(document.getElementById('item-price').value);
-            const stock = parseInt(document.getElementById('item-stock').value);
-            const category = document.getElementById('item-category').value;
-            const min = parseInt(document.getElementById('item-min').value);
-
-            if(!name || isNaN(price)) return;
-
-            items.push({
-                id: Math.floor(1000 + Math.random() * 9000).toString(),
-                name, price, stock, category, minStock: min
+            // Генерация QR для строки (содержит имя и цену)
+            new QRCode(document.getElementById(`qr-${item.id}`), {
+                text: `Товар: ${item.name} | Ціна: ${item.price} UAH`,
+                width: 80,
+                height: 80
             });
+        });
+    }
 
-            closeAddModal();
-            renderInventory();
-        }
+    function removeItem(id) {
+        inventory = inventory.filter(i => i.id !== id);
+        renderTable();
+    }
 
-        function deleteItem(id) {
-            if(confirm('Видалити цей товар?')) {
-                items = items.filter(i => i.id !== id);
-                renderInventory();
-            }
-        }
+    function printQR(id) {
+        const item = inventory.find(i => i.id === id);
+        const printArea = document.getElementById('qrToPrint');
+        const printTitle = document.getElementById('nameToPrint');
+        const printPrice = document.getElementById('priceToPrint');
 
-        // --- Логіка Реалізації ---
-        function renderSales() {
-            const grid = document.getElementById('sales-grid');
-            grid.innerHTML = items.map(item => `
-                <button onclick="makeSale('${item.id}')" ${item.stock <= 0 ? 'disabled' : ''} 
-                    class="bg-white p-6 rounded-3xl border text-left transition-all relative overflow-hidden group shadow-sm hover:shadow-xl active:scale-[0.98] ${item.stock <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:border-blue-300'}">
-                    <div class="mb-4">
-                        <div class="text-xs font-bold text-blue-500 uppercase mb-1">${item.category}</div>
-                        <div class="text-xl font-black leading-tight">${item.name}</div>
-                    </div>
-                    <div class="flex justify-between items-end">
-                        <div class="text-2xl font-black text-slate-900">${item.price} ₴</div>
-                        <div class="px-3 py-1 rounded-xl text-xs font-bold ${item.stock > 5 ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}">
-                            Залишок: ${item.stock} шт
-                        </div>
-                    </div>
-                </button>
-            `).join('');
-        }
+        printArea.innerHTML = ''; // Очистка
+        printTitle.innerText = item.name;
+        printPrice.innerText = `Ціна: ${item.price} грн`;
 
-        function makeSale(id) {
-            const item = items.find(i => i.id === id);
-            if(item && item.stock > 0) {
-                item.stock--;
-                sales.unshift({
-                    id: Date.now(),
-                    name: item.name,
-                    price: item.price,
-                    date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })
-                });
-                renderSales();
-            }
-        }
+        // Создаем крупный QR для печати
+        new QRCode(printArea, {
+            text: `ID:${item.id} | ${item.name} | ${item.price} UAH`,
+            width: 250,
+            height: 250
+        });
 
-        // --- Дашборд ---
-        function renderDashboard() {
-            const totalValue = items.reduce((acc, i) => acc + (i.price * i.stock), 0);
-            const totalSales = sales.reduce((acc, s) => acc + s.price, 0);
-            const lowStock = items.filter(i => i.stock <= i.minStock).length;
+        // Задержка перед печатью для рендера QR
+        setTimeout(() => {
+            document.getElementById('printArea').style.display = 'block';
+            window.print();
+            document.getElementById('printArea').style.display = 'none';
+        }, 300);
+    }
+</script>
 
-            document.getElementById('stat-total-value').innerText = totalValue.toLocaleString() + ' ₴';
-            document.getElementById('stat-total-sales').innerText = totalSales.toLocaleString() + ' ₴';
-            document.getElementById('stat-low-stock').innerText = lowStock;
-
-            const history = document.getElementById('sales-history');
-            if(sales.length === 0) {
-                history.innerHTML = '<p class="text-slate-400 text-sm py-4 text-center">Історія продажів порожня</p>';
-            } else {
-                history.innerHTML = sales.slice(0, 10).map(s => `
-                    <div class="flex justify-between p-4 bg-slate-50 rounded-2xl border border-transparent">
-                        <span class="font-semibold text-slate-700">${s.name}</span>
-                        <div class="text-right">
-                            <div class="font-black text-emerald-600">+${s.price} ₴</div>
-                            <div class="text-[10px] text-slate-400 uppercase font-bold">${s.date}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        // --- Надійна система друку (Iframe) ---
-        function openQrModal(id) {
-            const item = items.find(i => i.id === id);
-            if(!item) return;
-            currentQrItem = item;
-
-            document.getElementById('qr-item-name').innerText = item.name;
-            document.getElementById('qr-item-price').innerText = item.price + ' ₴';
-            document.getElementById('qr-item-id').innerText = 'ID: ' + item.id;
-            
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ID:${item.id}`;
-            document.getElementById('qr-img-placeholder').src = qrUrl;
-
-            document.getElementById('qrModal').classList.add('modal-active');
-        }
-
-        function closeQrModal() {
-            document.getElementById('qrModal').classList.remove('modal-active');
-            currentQrItem = null;
-        }
-
-        function printCurrentItem() {
-            if(!currentQrItem) return;
-            const btn = document.getElementById('btnPrint');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ГОТУЄТЬСЯ...';
-            btn.disabled = true;
-
-            const item = currentQrItem;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ID:${item.id}`;
-            const frame = document.getElementById('printFrame');
-            const doc = frame.contentDocument || frame.contentWindow.document;
-
-            const html = `
-                <html>
-                <head>
-                    <style>
-                        @page { size: auto; margin: 10mm; }
-                        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 90vh; margin: 0; }
-                        .ticket { text-align: center; border: 2px solid #000; padding: 25px; width: 220px; border-radius: 15px; }
-                        .n { font-weight: bold; font-size: 20px; margin-bottom: 5px; }
-                        .p { font-size: 30px; font-weight: 900; margin: 15px 0; }
-                        .q { width: 180px; height: 180px; display: block; margin: 0 auto; }
-                    </style>
-                </head>
-                <body>
-                    <div class="ticket">
-                        <div class="n">${item.name}</div>
-                        <div class="p">${item.price} ₴</div>
-                        <img id="pi" src="${qrUrl}" class="q" />
-          
+</body>
+</html>
