@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад Улік & QR Генератор (Fixed)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>Склад Улік & QR PRO</title>
+    <!-- Используем более стабильную библиотеку QRious -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
@@ -15,61 +16,57 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        h1 { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
-        
         .form-group { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
         input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
         
-        button { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #219150; }
+        button { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:hover { opacity: 0.9; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: var(--primary); color: white; }
 
-        .qr-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .print-btn { background: #3498db; font-size: 12px; }
+        .qr-preview { background: white; border: 1px solid #eee; }
+        .print-btn { background: #3498db; margin-top: 5px; font-size: 11px; }
 
-        /* ИСПРАВЛЕНИЕ: Стили для печати */
+        /* СТИЛИ ДЛЯ ПЕЧАТИ */
         @media print {
             body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%; 
-                display: flex !important; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center;
+            #printSection, #printSection * { visibility: visible; }
+            #printSection {
+                position: absolute;
+                left: 0; top: 0;
+                width: 100%;
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                padding-top: 50px;
             }
             .no-print { display: none !important; }
         }
 
-        /* Область предпросмотра печати скрыта в обычном режиме */
-        #printArea { display: none; }
+        #printSection { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Учёт склада (UAH ₴)</h1>
+    <h1>Складський облік ₴</h1>
     
     <div class="form-group no-print">
         <input type="text" id="itemName" placeholder="Назва товару">
         <input type="number" id="itemPrice" placeholder="Ціна (грн)">
         <input type="number" id="itemQty" placeholder="Кількість">
-        <button onclick="addItem()">Додати товар</button>
+        <button onclick="addItem()">Додати</button>
     </div>
 
-    <table id="inventoryTable">
+    <table>
         <thead>
             <tr>
                 <th>Товар</th>
-                <th>Ціна (₴)</th>
+                <th>Ціна</th>
                 <th>К-сть</th>
-                <th>QR-код</th>
+                <th>QR Код</th>
                 <th class="no-print">Дії</th>
             </tr>
         </thead>
@@ -77,11 +74,11 @@
     </table>
 </div>
 
-<!-- Контейнер для печати -->
-<div id="printArea">
-    <h2 id="nameToPrint"></h2>
-    <div id="qrToPrint"></div>
-    <h3 id="priceToPrint"></h3>
+<!-- Специальная зона для печати -->
+<div id="printSection">
+    <h2 id="printName"></h2>
+    <canvas id="printCanvas"></canvas>
+    <h3 id="printPrice"></h3>
 </div>
 
 <script>
@@ -92,10 +89,10 @@
         const price = document.getElementById('itemPrice').value;
         const qty = document.getElementById('itemQty').value;
 
-        if(!name || !price || !qty) return alert("Заповніть всі поля!");
+        if(!name || !price || !qty) return alert("Заповніть поля!");
 
         const item = {
-            id: "id_" + Date.now(),
+            id: Date.now().toString(),
             name,
             price: parseFloat(price).toFixed(2),
             qty
@@ -103,10 +100,6 @@
 
         inventory.push(item);
         renderTable();
-        clearInputs();
-    }
-
-    function clearInputs() {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemQty').value = '';
@@ -119,60 +112,54 @@
         inventory.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${item.name}</td>
-                <td>${item.price} ₴</td>
+                <td><b>${item.name}</b></td>
+                <td>${item.price} грн</td>
                 <td>${item.qty}</td>
                 <td>
-                    <div class="qr-cell">
-                        <div id="table-qr-${item.id}"></div>
-                        <button class="print-btn no-print" onclick="printQR('${item.id}')">Друкувати QR</button>
-                    </div>
+                    <canvas id="canvas-${item.id}" class="qr-preview"></canvas><br>
+                    <button class="print-btn no-print" onclick="preparePrint('${item.id}')">Друк QR</button>
                 </td>
                 <td class="no-print">
-                    <button style="background:#e74c3c" onclick="removeItem('${item.id}')">Видалити</button>
+                    <button style="background:#e74c3c" onclick="deleteItem('${item.id}')">Видалити</button>
                 </td>
             `;
             tbody.appendChild(row);
 
-            // Генерация QR для таблицы
-            new QRCode(document.getElementById(`table-qr-${item.id}`), {
-                text: `Product: ${item.name} | Price: ${item.price}`,
-                width: 60,
-                height: 60
+            // Генерация QR прямо в таблицу
+            new QRious({
+                element: document.getElementById(`canvas-${item.id}`),
+                value: `ITEM:${item.name}|PRICE:${item.price}|ID:${item.id}`,
+                size: 80
             });
         });
     }
 
-    function removeItem(id) {
+    function deleteItem(id) {
         inventory = inventory.filter(i => i.id !== id);
         renderTable();
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПЕЧАТИ
-    function printQR(id) {
+    function preparePrint(id) {
         const item = inventory.find(i => i.id === id);
-        const qrContainer = document.getElementById('qrToPrint');
         
-        // Очищаем старый QR в зоне печати
-        qrContainer.innerHTML = '';
-        
-        document.getElementById('nameToPrint').innerText = item.name;
-        document.getElementById('priceToPrint').innerText = item.price + " грн";
+        // Подготовка данных в зоне печати
+        document.getElementById('printName').innerText = item.name;
+        document.getElementById('printPrice').innerText = "Ціна: " + item.price + " грн";
 
-        // Генерируем новый QR специально для печати
-        new QRCode(qrContainer, {
-            text: `ID: ${item.id} | ${item.name} | ${item.price} UAH`,
-            width: 250,
-            height: 250,
-            correctLevel : QRCode.CorrectLevel.H
+        // Генерация большого QR для печати
+        new QRious({
+            element: document.getElementById('printCanvas'),
+            value: `ITEM:${item.name}|PRICE:${item.price}|ID:${item.id}`,
+            size: 300
         });
 
-        // Ждем отрисовки (Canvas/SVG требует времени)
+        // Небольшая пауза для рендеринга canvas перед вызовом окна печати
         setTimeout(() => {
             window.print();
-        }, 500);
+        }, 300);
     }
 </script>
 
 </body>
-</html>
+    </html>
+    
