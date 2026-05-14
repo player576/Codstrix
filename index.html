@@ -3,78 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад Улік & QR PRO</title>
-    <!-- Используем более стабильную библиотеку QRious -->
+    <title>Склад QR Pro + Supabase</title>
+    
+    <!-- Библиотеки: QR Code, QR Scanner, Supabase -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #27ae60;
-            --bg: #f4f7f6;
-        }
-
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        .form-group { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+        @media(min-width: 600px) { .form-group { grid-template-columns: 2fr 1fr 1fr auto; } }
         
-        button { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        button:hover { opacity: 0.9; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        #reader { width: 100%; max-width: 400px; margin: 10px auto; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: var(--primary); color: white; }
 
-        .qr-preview { background: white; border: 1px solid #eee; }
-        .print-btn { background: #3498db; margin-top: 5px; font-size: 11px; }
+        .qr-preview { background: white; border: 1px solid #eee; width: 80px; height: 80px; }
+        .btn-scan { background: #8e44ad; margin-bottom: 10px; width: 100%; }
+        .btn-print { background: #3498db; font-size: 11px; margin-top: 5px; }
 
-        /* СТИЛИ ДЛЯ ПЕЧАТИ */
         @media print {
             body * { visibility: hidden; }
             #printSection, #printSection * { visibility: visible; }
-            #printSection {
-                position: absolute;
-                left: 0; top: 0;
-                width: 100%;
-                display: flex !important;
-                flex-direction: column;
-                align-items: center;
-                padding-top: 50px;
-            }
-            .no-print { display: none !important; }
+            #printSection { position: absolute; left: 0; top: 0; width: 100%; display: flex !important; flex-direction: column; align-items: center; }
         }
-
         #printSection { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Складський облік ₴</h1>
-    
-    <div class="form-group no-print">
+    <h1>Склад ₴ (Cloud Sync)</h1>
+
+    <!-- Блок сканера -->
+    <button class="btn-scan" onclick="toggleScanner()">Увімкнути/Вимкнути Сканер</button>
+    <div id="reader"></div>
+
+    <!-- Форма ввода -->
+    <div class="form-group">
         <input type="text" id="itemName" placeholder="Назва товару">
         <input type="number" id="itemPrice" placeholder="Ціна (грн)">
         <input type="number" id="itemQty" placeholder="Кількість">
-        <button onclick="addItem()">Додати</button>
+        <button onclick="addItem()">Додати в базу</button>
     </div>
 
-    <table>
+    <table id="inventoryTable">
         <thead>
             <tr>
                 <th>Товар</th>
                 <th>Ціна</th>
                 <th>К-сть</th>
-                <th>QR Код</th>
-                <th class="no-print">Дії</th>
+                <th>QR</th>
+                <th>Дія</th>
             </tr>
         </thead>
         <tbody id="inventoryBody"></tbody>
     </table>
 </div>
 
-<!-- Специальная зона для печати -->
 <div id="printSection">
     <h2 id="printName"></h2>
     <canvas id="printCanvas"></canvas>
@@ -82,84 +77,146 @@
 </div>
 
 <script>
-    let inventory = [];
+    // Инициализация Supabase
+    const SUPABASE_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3b2F4ZnJpanZ0ZmNsemRvZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzg0MTksImV4cCI6MjA5MzgxNDQxOX0.L_D25KpKYGAsBg2pqM80H0RqgUOB1J_ZVI1X_J9nqAw";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function addItem() {
+    let inventory = [];
+    let html5QrCode;
+
+    // 1. Загрузка данных при старте
+    async function loadData() {
+        const { data, error } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
+        if (error) console.error('Помилка завантаження:', error);
+        else {
+            inventory = data || [];
+            renderTable();
+        }
+    }
+
+    // 2. Добавление товара
+    async function addItem() {
         const name = document.getElementById('itemName').value;
         const price = document.getElementById('itemPrice').value;
         const qty = document.getElementById('itemQty').value;
 
         if(!name || !price || !qty) return alert("Заповніть поля!");
 
-        const item = {
-            id: Date.now().toString(),
-            name,
-            price: parseFloat(price).toFixed(2),
-            qty
-        };
+        const newItem = { name, price: parseFloat(price).toFixed(2), qty: parseInt(qty) };
 
-        inventory.push(item);
-        renderTable();
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        document.getElementById('itemQty').value = '';
+        const { data, error } = await supabase.from('inventory').insert([newItem]).select();
+        
+        if (error) alert("Помилка Supabase: " + error.message);
+        else {
+            inventory.unshift(data[0]);
+            renderTable();
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('itemQty').value = '';
+        }
     }
 
+    // 3. Отрисовка таблицы
     function renderTable() {
         const tbody = document.getElementById('inventoryBody');
         tbody.innerHTML = '';
 
         inventory.forEach(item => {
             const row = document.createElement('tr');
+            row.id = `row-${item.id}`;
             row.innerHTML = `
                 <td><b>${item.name}</b></td>
                 <td>${item.price} грн</td>
                 <td>${item.qty}</td>
                 <td>
                     <canvas id="canvas-${item.id}" class="qr-preview"></canvas><br>
-                    <button class="print-btn no-print" onclick="preparePrint('${item.id}')">Друк QR</button>
+                    <button class="btn-print" onclick="preparePrint('${item.id}')">Друк</button>
                 </td>
-                <td class="no-print">
-                    <button style="background:#e74c3c" onclick="deleteItem('${item.id}')">Видалити</button>
+                <td>
+                    <button style="background:#e74c3c" onclick="deleteItem('${item.id}')">❌</button>
                 </td>
             `;
             tbody.appendChild(row);
 
-            // Генерация QR прямо в таблицу
             new QRious({
                 element: document.getElementById(`canvas-${item.id}`),
-                value: `ITEM:${item.name}|PRICE:${item.price}|ID:${item.id}`,
-                size: 80
+                value: `ID:${item.id}`, // В коде только ID для поиска в базе
+                size: 100
             });
         });
     }
 
-    function deleteItem(id) {
-        inventory = inventory.filter(i => i.id !== id);
-        renderTable();
+    // 4. Удаление
+    async function deleteItem(id) {
+        const { error } = await supabase.from('inventory').delete().eq('id', id);
+        if (!error) {
+            inventory = inventory.filter(i => i.id !== id);
+            renderTable();
+        }
     }
 
-    function preparePrint(id) {
-        const item = inventory.find(i => i.id === id);
-        
-        // Подготовка данных в зоне печати
-        document.getElementById('printName').innerText = item.name;
-        document.getElementById('printPrice').innerText = "Ціна: " + item.price + " грн";
+    // 5. Работа со сканером
+    function toggleScanner() {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: 250 },
+                (decodedText) => {
+                    handleScanSuccess(decodedText);
+                }
+            ).catch(err => alert("Камера не доступна"));
+        } else {
+            html5QrCode.stop().then(() => {
+                html5QrCode = null;
+                document.getElementById('reader').innerHTML = '';
+            });
+        }
+    }
 
-        // Генерация большого QR для печати
+    function handleScanSuccess(text) {
+        // Ожидаемый формат в QR: "ID:123"
+        const id = text.replace("ID:", "").trim();
+        const foundRow = document.getElementById(`row-${id}`);
+        
+        if (foundRow) {
+            foundRow.style.backgroundColor = "#fff9c4"; // Подсветка найденного
+            foundRow.scrollIntoView({ behavior: 'smooth' });
+            alert("Товар знайдено в базі!");
+        } else {
+            alert("Товар з таким ID не знайдено в цій таблиці.");
+        }
+    }
+
+    // 6. Печать
+    function preparePrint(id) {
+        const item = inventory.find(i => i.id == id);
+        document.getElementById('printName').innerText = item.name;
+        document.getElementById('printPrice').innerText = item.price + " грн";
         new QRious({
             element: document.getElementById('printCanvas'),
-            value: `ITEM:${item.name}|PRICE:${item.price}|ID:${item.id}`,
-            size: 300
+            value: `ID:${item.id}`,
+            size: 250
         });
-
-        // Небольшая пауза для рендеринга canvas перед вызовом окна печати
-        setTimeout(() => {
-            window.print();
-        }, 300);
+        setTimeout(() => { window.print(); }, 300);
     }
+
+    // Инициализация базы данных (выполнить в SQL консоли Supabase):
+    /*
+    create table inventory (
+      id uuid default gen_random_uuid() primary key,
+      created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+      name text,
+      price decimal,
+      qty int
+    );
+    alter table inventory enable row level security;
+    create policy "Allow public access" on inventory for all using (true);
+    */
+
+    window.onload = loadData;
 </script>
 
 </body>
-    </html>
-    
+</html>
