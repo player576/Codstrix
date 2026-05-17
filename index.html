@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад PRO — Сума</title>
+    <title>Склад PRO — Камера Фикс</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -119,7 +119,7 @@
         const tbody = document.getElementById('inventoryBody');
         tbody.innerHTML = '';
         inventory.forEach(item => {
-            const itemSum = (item.price * item.qty).toFixed(2); // Расчет суммы
+            const itemSum = (item.price * item.qty).toFixed(2);
             const row = document.createElement('tr');
             row.id = `row-${item.id}`;
             row.innerHTML = `
@@ -190,45 +190,56 @@
         }
     }
 
-    document.getElementById('scanToggleBtn').addEventListener('click', function() {
+    // ИСПРАВЛЕННЫЙ БЛОК ВКЛЮЧЕНИЯ СКАНИРОВАНИЯ С ПРИНУДИТЕЛЬНЫМ ЗАПРОСОМ ПРАВ ДЛЯ APK
+    document.getElementById('scanToggleBtn').addEventListener('click', async function() {
         const btn = this;
         if (!html5QrCode) {
             document.getElementById('reader').innerHTML = '';
-            html5QrCode = new Html5Qrcode("reader");
             
-            const config = { 
-                fps: 15, 
-                qrbox: function(viewfinderWidth, viewfinderHeight) {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    return { width: Math.floor(minEdge * 0.7), height: Math.floor(minEdge * 0.7) };
-                }
-            };
-
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText) => {
-                    const cleanId = decodedText.trim();
-                    const row = document.getElementById(`row-${cleanId}`);
-                    
-                    if (row) {
-                        row.scrollIntoView({ behavior: 'smooth' });
-                        document.querySelectorAll('tr').forEach(r => r.style.background = 'none');
-                        row.style.background = "#ffff99";
-                    } else {
-                        alert("Скановано ID: " + cleanId + "\nТовар не знайдено в локальній таблиці.");
+            try {
+                // ПРИНУДИТЕЛЬНЫЙ ЗАПРОС РАЗРЕШЕНИЯ ДОСТУПА ДЛЯ СИСТЕМЫ (WebView / APK)
+                await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                
+                html5QrCode = new Html5Qrcode("reader");
+                
+                const config = { 
+                    fps: 15, 
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        return { width: Math.floor(minEdge * 0.7), height: Math.floor(minEdge * 0.7) };
                     }
-                    stopScanner(btn);
-                },
-                (errorMessage) => {}
-            ).catch(err => {
-                alert("Помилка доступу до камери.");
-                console.error(err);
-                html5QrCode = null;
-            });
+                };
 
-            btn.innerText = "Вимкнути сканер";
-            btn.style.background = "#e74c3c";
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        const cleanId = decodedText.trim();
+                        const row = document.getElementById(`row-${cleanId}`);
+                        
+                        if (row) {
+                            row.scrollIntoView({ behavior: 'smooth' });
+                            document.querySelectorAll('tr').forEach(r => r.style.background = 'none');
+                            row.style.background = "#ffff99";
+                        } else {
+                            alert("Скановано ID: " + cleanId + "\nТовар не знайдено в локальній таблиці.");
+                        }
+                        stopScanner(btn);
+                    },
+                    (errorMessage) => {}
+                ).catch(err => {
+                    alert("Помилка ініціалізації сканера. Перевірте камеру.");
+                    html5QrCode = null;
+                });
+
+                btn.innerText = "Вимкнути сканер";
+                btn.style.background = "#e74c3c";
+
+            } catch (mediaError) {
+                // Если пользователь нажал "Запретить" или в APK нет пермишенов в AndroidManifest.xml
+                alert("Доступ до камери відхилено або заблоковано пристроєм!");
+                console.error(mediaError);
+            }
         } else {
             stopScanner(btn);
         }
