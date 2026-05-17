@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад PRO — Исправлено</title>
+    <title>Склад PRO — Редагування</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -12,20 +12,24 @@
     <style>
         :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f4f7f6; }
         body { font-family: sans-serif; background: var(--bg); padding: 15px; margin: 0; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         input { padding: 12px; border: 1px solid #ccc; border-radius: 6px; flex: 1; min-width: 150px; }
         button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
         .btn-add { background: var(--accent); }
         .btn-scan { background: #8e44ad; width: 100%; margin-bottom: 15px; }
         
-        /* Исправление стилей контейнера сканера для корректного отображения видео */
         #reader { width: 100%; max-width: 400px; margin: 0 auto 15px; border-radius: 8px; overflow: hidden; background: #000; }
         
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: var(--primary); color: white; }
         canvas { background: white; border: 1px solid #ddd; }
+
+        /* Стили для инпутов внутри таблицы при редактировании */
+        .edit-input { width: 90%; padding: 6px; border: 1px solid #27ae60; border-radius: 4px; font-size: 14px; }
+        .btn-edit { background: #f39c12; margin-right: 2px; }
+        .btn-save { background: #27ae60; margin-right: 2px; }
         
         @media print {
             body * { visibility: hidden; }
@@ -118,11 +122,12 @@
             const row = document.createElement('tr');
             row.id = `row-${item.id}`;
             row.innerHTML = `
-                <td>${item.name}</td>
-                <td>${item.price} ₴</td>
-                <td>${item.qty}</td>
+                <td id="cell-name-${item.id}">${item.name}</td>
+                <td id="cell-price-${item.id}">${item.price} ₴</td>
+                <td id="cell-qty-${item.id}">${item.qty}</td>
                 <td><canvas id="qr-${item.id}"></canvas></td>
-                <td>
+                <td style="white-space: nowrap;">
+                    <button class="btn-edit" id="btn-action-${item.id}" onclick="toggleEdit('${item.id}')">Редагувати</button>
                     <button style="background:#3498db" onclick="printItem('${item.id}')">Друк</button>
                     <button style="background:#e74c3c" onclick="deleteItem('${item.id}')">❌</button>
                 </td>
@@ -137,6 +142,51 @@
         });
     }
 
+    // НОВАЯ ФУНКЦИЯ: Переключение режима редактирования / сохранения
+    async function toggleEdit(id) {
+        const row = inventory.find(i => i.id === id);
+        const actionBtn = document.getElementById(`btn-action-${id}`);
+        
+        const nameCell = document.getElementById(`cell-name-${id}`);
+        const priceCell = document.getElementById(`cell-price-${id}`);
+        const qtyCell = document.getElementById(`cell-qty-${id}`);
+
+        if (actionBtn.innerText === "Редагувати") {
+            // Включаем режим редактирования: заменяем текст на инпуты
+            nameCell.innerHTML = `<input type="text" id="edit-name-${id}" class="edit-input" value="${row.name}">`;
+            priceCell.innerHTML = `<input type="number" id="edit-price-${id}" class="edit-input" value="${row.price}">`;
+            qtyCell.innerHTML = `<input type="number" id="edit-qty-${id}" class="edit-input" value="${row.qty}">`;
+            
+            actionBtn.innerText = "Зберегти";
+            actionBtn.className = "btn-save";
+        } else {
+            // Режим сохранения: собираем данные из инпутов
+            const newName = document.getElementById(`edit-name-${id}`).value;
+            const newPrice = parseFloat(document.getElementById(`edit-price-${id}`).value);
+            const newQty = parseInt(document.getElementById(`edit-qty-${id}`).value) || 0;
+
+            if (!newName || isNaN(newPrice)) return alert("Некоректні дані!");
+
+            // Отправляем изменения в Supabase
+            const { error } = await supabaseClient
+                .from('inventory')
+                .update({ name: newName, price: newPrice, qty: newQty })
+                .eq('id', id);
+
+            if (error) {
+                alert("Помилка оновлення: " + error.message);
+            } else {
+                // Обновляем локальный массив данных
+                row.name = newName;
+                row.price = newPrice;
+                row.qty = newQty;
+                
+                // Перерисовываем таблицу с новыми данными и обновленным QR
+                renderTable();
+            }
+        }
+    }
+
     async function deleteItem(id) {
         const { error } = await supabaseClient.from('inventory').delete().eq('id', id);
         if (!error) {
@@ -145,15 +195,13 @@
         }
     }
 
-    // ИСПРАВЛЕННЫЙ БЛОК СКАНИРОВАНИЯ
+    // Блок сканирования
     document.getElementById('scanToggleBtn').addEventListener('click', function() {
         const btn = this;
         if (!html5QrCode) {
-            // Очищаем контейнер перед запуском
             document.getElementById('reader').innerHTML = '';
             html5QrCode = new Html5Qrcode("reader");
             
-            // Настройки сканера с повышенной совместимостью
             const config = { 
                 fps: 15, 
                 qrbox: function(viewfinderWidth, viewfinderHeight) {
@@ -162,32 +210,25 @@
                 }
             };
 
-            // Запуск сканирования
             html5QrCode.start(
                 { facingMode: "environment" },
                 config,
                 (decodedText) => {
-                    // Действие при успешном сканировании
                     const cleanId = decodedText.trim();
                     const row = document.getElementById(`row-${cleanId}`);
                     
                     if (row) {
                         row.scrollIntoView({ behavior: 'smooth' });
-                        // Сброс подсветки у других строк и запуск новой
                         document.querySelectorAll('tr').forEach(r => r.style.background = 'none');
                         row.style.background = "#ffff99";
                     } else {
                         alert("Скановано ID: " + cleanId + "\nТовар не знайдено в локальній таблиці.");
                     }
-                    
-                    // Останавливаем сканер после успешного чтения, чтобы не спамить алертами
                     stopScanner(btn);
                 },
-                (errorMessage) => {
-                    // Оставляем пустым, чтобы не забивать логи ошибками фокуса камеры
-                }
+                (errorMessage) => {}
             ).catch(err => {
-                alert("Помилка доступу до камери. Перевірте дозволи у браузері.");
+                alert("Помилка доступу до камери.");
                 console.error(err);
                 html5QrCode = null;
             });
@@ -206,9 +247,7 @@
                 document.getElementById('reader').innerHTML = '';
                 buttonElement.innerText = "Увімкнути сканер";
                 buttonElement.style.background = "#8e44ad";
-            }).catch(err => {
-                console.error("Помилка зупинки:", err);
-            });
+            }).catch(err => console.error(err));
         }
     }
 
