@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад PRO — Камера Фикс</title>
+    <title>Склад PRO — Камера Фікс APK</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -190,16 +190,22 @@
         }
     }
 
-    // ИСПРАВЛЕННЫЙ БЛОК ВКЛЮЧЕНИЯ СКАНИРОВАНИЯ С ПРИНУДИТЕЛЬНЫМ ЗАПРОСОМ ПРАВ ДЛЯ APK
-    document.getElementById('scanToggleBtn').addEventListener('click', async function() {
+    // ИСПРАВЛЕННАЯ ЛОГИКА ЗАПРОСА РАЗРЕШЕНИЙ ДЛЯ КАМЕРЫ (ОПТИМИЗИРОВАНО ПОД APK)
+    document.getElementById('scanToggleBtn').addEventListener('click', function() {
         const btn = this;
+        
         if (!html5QrCode) {
             document.getElementById('reader').innerHTML = '';
             
-            try {
-                // ПРИНУДИТЕЛЬНЫЙ ЗАПРОС РАЗРЕШЕНИЯ ДОСТУПА ДЛЯ СИСТЕМЫ (WebView / APK)
-                await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            // Базовый, максимально совместимый запрос прав
+            const constraints = { video: true };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+            .then(function(stream) {
+                // Если разрешение успешно получено, останавливаем временный тестовый поток
+                stream.getTracks().forEach(track => track.stop());
                 
+                // И запускаем основной сканер
                 html5QrCode = new Html5Qrcode("reader");
                 
                 const config = { 
@@ -228,18 +234,19 @@
                     },
                     (errorMessage) => {}
                 ).catch(err => {
-                    alert("Помилка ініціалізації сканера. Перевірте камеру.");
+                    alert("Помилка ініціалізації: " + err);
                     html5QrCode = null;
                 });
 
                 btn.innerText = "Вимкнути сканер";
                 btn.style.background = "#e74c3c";
-
-            } catch (mediaError) {
-                // Если пользователь нажал "Запретить" или в APK нет пермишенов в AndroidManifest.xml
-                alert("Доступ до камери відхилено або заблоковано пристроєм!");
-                console.error(mediaError);
-            }
+            })
+            .catch(function(err) {
+                // Сработает, если Android заблокировал доступ на уровне системы
+                alert("Камера недоступна. Будь ласка, надайте дозвіл у налаштуваннях програми Android.");
+                console.error("Media error:", err);
+            });
+            
         } else {
             stopScanner(btn);
         }
