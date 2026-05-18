@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад PRO — Справжній Друк в APK</title>
+    <title>Склад PRO — Фікс для Median.co</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <script src="https://printjs-40120.nodechef.com/print.min.js"></script>
-    <link rel="stylesheet" href="https://printjs-40120.nodechef.com/print.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f4f7f6; }
@@ -33,23 +32,23 @@
         .btn-edit { background: #f39c12; margin-right: 2px; }
         .btn-save { background: #27ae60; margin-right: 2px; }
 
-        /* ЗОНА ДЛЯ ПЕЧАТИ (Скрыта на экране, оптимизирована под термопринтер) */
-        #printSection { 
-            display: none; 
+        /* СКРЫТЫЙ КОНТЕЙНЕР ЦЕННИКА ДЛЯ СНИМКА */
+        #printContainer {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
         }
-
-        /* Стили чисто для отправки на принтер */
-        .printable-ticket {
-            width: 280px;
-            padding: 10px;
+        .ticket-box {
+            width: 300px;
+            padding: 20px;
+            background: white;
             text-align: center;
             font-family: Arial, sans-serif;
-            color: #000;
-            background: #fff;
+            border: 1px solid #000;
         }
-        .printable-ticket h2 { margin: 5px 0; font-size: 18px; word-break: break-all; }
-        .printable-ticket h3 { margin: 10px 0; font-size: 22px; font-weight: bold; }
-        .printable-ticket img { margin: 5px auto; display: block; }
+        .ticket-box h2 { font-size: 20px; margin: 0 0 10px 0; color: #000; word-break: break-all; }
+        .ticket-box h3 { font-size: 26px; margin: 15px 0 0 0; font-weight: bold; color: #000; }
+        .ticket-box canvas { display: block; margin: 0 auto; border: none; }
     </style>
 </head>
 <body>
@@ -82,15 +81,13 @@
     </table>
 </div>
 
-<div id="printSection">
-    <div id="ticketData" class="printable-ticket">
-        <h2 id="printName">Товар</h2>
-        <img id="printImg" src="" alt="QR">
-        <h3 id="printPrice">0.00 грн</h3>
+<div id="printContainer">
+    <div id="liveTicket" class="ticket-box">
+        <h2 id="pName">Назва</h2>
+        <canvas id="pCanvas"></canvas>
+        <h3 id="pPrice">0.00 грн</h3>
     </div>
 </div>
-
-<canvas id="tempCanvas" style="display:none;"></canvas>
 
 <script>
     const S_URL = "https://zwoaxfrijvtfclzdodpf.supabase.co";
@@ -264,34 +261,53 @@
         }
     }
 
-    /* ИСПРАВЛЕННАЯ НАСТОЯЩАЯ ПЕЧАТЬ ДЛЯ APK ЧЕРЕЗ HTML-ПАКЕТ */
+    /* ФУНКЦИЯ ДЛЯ ОБХОДА ОГРАНИЧЕНИЙ MEDIAN.CO */
     function printItem(id) {
         const item = inventory.find(i => i.id === id);
         
-        // 1. Заполняем текстовые данные ценника
-        document.getElementById('printName').innerText = item.name;
-        document.getElementById('printPrice').innerText = item.price.toFixed(2) + " грн";
+        // Передаем данные в скрытый блок ценника
+        document.getElementById('pName').innerText = item.name;
+        document.getElementById('pPrice').innerText = item.price.toFixed(2) + " грн";
         
-        // 2. Генерируем QR во временный скрытый холст
-        const qr = new QRious({
-            element: document.getElementById('tempCanvas'),
+        new QRious({
+            element: document.getElementById('pCanvas'),
             value: item.id,
             size: 200
         });
-        
-        // 3. Переводим QR в картинку, чтобы библиотека смогла её прочитать
-        const qrImage = document.getElementById('printImg');
-        qrImage.src = qr.toDataURL();
 
-        // 4. Даем 100мс на подгрузку картинки в src и форсируем печать выбранного блока
+        // Даем небольшую задержку на отрисовку QR и делаем скриншот блока
         setTimeout(() => {
-            printJS({
-                printable: 'ticketData', // id контейнера ценника
-                type: 'html',
-                style: '.printable-ticket { width: 100%; text-align: center; font-family: sans-serif; } .printable-ticket h2 { font-size: 20px; margin: 5px 0; } .printable-ticket h3 { font-size: 24px; font-weight: bold; margin: 10px 0; } .printable-ticket img { display: block; margin: 10px auto; width: 180px; }',
-                scanStyles: false
+            const target = document.getElementById('liveTicket');
+            
+            html2canvas(target, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Создаем HTML код страницы для печати
+                const printWindowHtml = `
+                    <html>
+                    <head>
+                        <title>Друк цінника</title>
+                        <style>
+                            body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #fff; }
+                            img { max-width: 100%; height: auto; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${imgData}" onload="window.print();">
+                    </body>
+                    </html>
+                `;
+                
+                // Открываем новое окно. В Median.co это принудительно откроет полноценный Chrome/Браузер телефона
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write(printWindowHtml);
+                    printWindow.document.close();
+                } else {
+                    alert("Браузер заблокував спливаюче вікно. Будь ласка, дозвольте спливаючі вікна для цієї сторінки.");
+                }
             });
-        }, 100);
+        }, 150);
     }
 
     window.onload = loadData;
