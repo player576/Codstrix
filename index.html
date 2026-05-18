@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Склад PRO — Камера Фікс APK</title>
+    <title>Склад PRO — Фікс Друку в APK</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -29,12 +29,32 @@
         .edit-input { width: 90%; padding: 6px; border: 1px solid #27ae60; border-radius: 4px; font-size: 14px; }
         .btn-edit { background: #f39c12; margin-right: 2px; }
         .btn-save { background: #27ae60; margin-right: 2px; }
-        
-        @media print {
-            body * { visibility: hidden; }
-            #printSection, #printSection * { visibility: visible; }
-            #printSection { position: absolute; left: 0; top: 0; width: 100%; text-align: center; }
+
+        /* СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ПЕЧАТИ (Для APK) */
+        .print-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
+        .print-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .print-content h2 { margin: 0 0 10px 0; color: #2c3e50; font-size: 22px; word-break: break-all; }
+        .print-content h3 { margin: 15px 0 20px 0; color: #27ae60; font-size: 20px; }
+        .print-content canvas { border: 2px solid #eee; padding: 10px; border-radius: 8px; }
+        .btn-close-modal { background: #e74c3c; width: 100%; margin-top: 10px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -67,10 +87,14 @@
     </table>
 </div>
 
-<div id="printSection">
-    <h1 id="printName"></h1>
-    <canvas id="printCanvas"></canvas>
-    <h2 id="printPrice"></h2>
+<div id="apkPrintModal" class="print-modal">
+    <div class="print-content">
+        <h2 id="modalName">Назва товару</h2>
+        <canvas id="modalCanvas"></canvas>
+        <h3 id="modalPrice">0.00 грн</h3>
+        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">Зробіть скріншот для друку або відскануйте з екрана</p>
+        <button class="btn-close-modal" onclick="closePrintModal()">Закрити</button>
+    </div>
 </div>
 
 <script>
@@ -130,7 +154,7 @@
                 <td><canvas id="qr-${item.id}"></canvas></td>
                 <td style="white-space: nowrap;">
                     <button class="btn-edit" id="btn-action-${item.id}" onclick="toggleEdit('${item.id}')">Редагувати</button>
-                    <button style="background:#3498db" onclick="printItem('${item.id}')">Друк</button>
+                    <button style="background:#3498db" onclick="openPrintModal('${item.id}')">Друк</button>
                     <button style="background:#e74c3c" onclick="deleteItem('${item.id}')">❌</button>
                 </td>
             `;
@@ -190,22 +214,17 @@
         }
     }
 
-    // ИСПРАВЛЕННАЯ ЛОГИКА ЗАПРОСА РАЗРЕШЕНИЙ ДЛЯ КАМЕРЫ (ОПТИМИЗИРОВАНО ПОД APK)
+    // Блок сканера
     document.getElementById('scanToggleBtn').addEventListener('click', function() {
         const btn = this;
         
         if (!html5QrCode) {
             document.getElementById('reader').innerHTML = '';
             
-            // Базовый, максимально совместимый запрос прав
-            const constraints = { video: true };
-            
-            navigator.mediaDevices.getUserMedia(constraints)
+            navigator.mediaDevices.getUserMedia({ video: true })
             .then(function(stream) {
-                // Если разрешение успешно получено, останавливаем временный тестовый поток
                 stream.getTracks().forEach(track => track.stop());
                 
-                // И запускаем основной сканер
                 html5QrCode = new Html5Qrcode("reader");
                 
                 const config = { 
@@ -228,7 +247,7 @@
                             document.querySelectorAll('tr').forEach(r => r.style.background = 'none');
                             row.style.background = "#ffff99";
                         } else {
-                            alert("Скановано ID: " + cleanId + "\nТовар не знайдено в локальній таблиці.");
+                            alert("Скановано ID: " + cleanId + "\nТовар не знайдено.");
                         }
                         stopScanner(btn);
                     },
@@ -242,9 +261,7 @@
                 btn.style.background = "#e74c3c";
             })
             .catch(function(err) {
-                // Сработает, если Android заблокировал доступ на уровне системы
-                alert("Камера недоступна. Будь ласка, надайте дозвіл у налаштуваннях програми Android.");
-                console.error("Media error:", err);
+                alert("Камера недоступна. Надайте дозвіл.");
             });
             
         } else {
@@ -263,16 +280,26 @@
         }
     }
 
-    function printItem(id) {
+    /* ИСПРАВЛЕННЫЕ ФУНКЦИИ ВЫЗОВА ОКНА ПЕЧАТИ (ДЛЯ APK) */
+    function openPrintModal(id) {
         const item = inventory.find(i => i.id === id);
-        document.getElementById('printName').innerText = item.name;
-        document.getElementById('printPrice').innerText = item.price + " грн";
+        
+        document.getElementById('modalName').innerText = item.name;
+        document.getElementById('modalPrice').innerText = item.price + " грн";
+        
+        // Генерируем большой QR код внутри модального окна
         new QRious({
-            element: document.getElementById('printCanvas'),
+            element: document.getElementById('modalCanvas'),
             value: item.id,
-            size: 250
+            size: 220
         });
-        setTimeout(() => window.print(), 500);
+        
+        // Показываем модальное окно на весь экран
+        document.getElementById('apkPrintModal').style.display = 'flex';
+    }
+
+    function closePrintModal() {
+        document.getElementById('apkPrintModal').style.display = 'none';
     }
 
     window.onload = loadData;
